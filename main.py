@@ -155,6 +155,7 @@ class Bullet(pygame.sprite.Sprite):
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = self.image.get_rect().move(x, y)
         self.image.set_colorkey(self.image.get_at((0, 0)))
+        self.bullet_update()
 
     def move(self, x, y):
         self.pos_x = round(x)
@@ -165,7 +166,7 @@ class Bullet(pygame.sprite.Sprite):
             self.kill()
         self.rect = self.image.get_rect().move(round(x), round(y))
 
-    def update(self):
+    def bullet_update(self):
         try:
             tg = ((scope.pos_y - self.pos_y) / (scope.pos_x - self.pos_x))
         except ZeroDivisionError:
