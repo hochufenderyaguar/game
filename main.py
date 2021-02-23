@@ -165,6 +165,18 @@ class Bullet(pygame.sprite.Sprite):
             self.kill()
         self.rect = self.image.get_rect().move(round(x), round(y))
 
+    def update(self):
+        try:
+            tg = ((scope.pos_y - self.pos_y) / (scope.pos_x - self.pos_x))
+        except ZeroDivisionError:
+            tg = 0
+        rad = atan(tg)
+        deg = degrees(rad)
+        if self.pos_x > scope.pos_x:
+            self.image = pygame.transform.flip(pygame.transform.rotate(images['bullet'], deg), True, False)
+        else:
+            self.image = pygame.transform.rotate(images['bullet'], -deg)
+
 
 class BulletLstEl:
     def __init__(self, bullet_obj, start_pos, end_pos):
