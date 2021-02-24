@@ -1,8 +1,7 @@
 import pygame
 import random
-from math import tan, sqrt, acos, degrees, atan2, atan, pow, pi
+from math import degrees, atan
 
-tile_width = tile_height = 30
 guns_images = {'sword': pygame.transform.scale(pygame.image.load('sprites\\guns\\sword.png'), (23, 6)),
                'gun1': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun1.png'), (20, 5)),
                'gun2': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun2.png'), (18, 5))
@@ -55,10 +54,16 @@ hero_animation = {
             False)]
 }
 
+tile_width = tile_height = 30
 animCounter = 0
 clock = pygame.time.Clock()
 FPS = 30
 moving_right = moving_left = False
+hp = 4
+full_health = pygame.image.load('sprites/full_health.png')
+zero_health = pygame.image.load('sprites/zero_health.png')
+x = 1000
+y = 15
 
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
@@ -67,6 +72,19 @@ player_group = pygame.sprite.Group()
 group = pygame.sprite.Group()
 bullets_group = pygame.sprite.Group()
 enemies_group = pygame.sprite.Group()
+hearts_group = pygame.sprite.Group()
+
+
+class Heart(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y, i):
+        super().__init__(hearts_group, all_sprites)
+        self.pos_x, self.pos_y, self.i = pos_x, pos_y, i
+        self.image = full_health
+        self.rect = self.image.get_rect().move(pos_x, pos_y)
+
+    def update(self):
+        if self.i > hp:
+            self.image = zero_health
 
 
 class Tile(pygame.sprite.Sprite):
@@ -282,6 +300,10 @@ def draw_text(screen, text, size, x, y):
     screen.blit(text_surface, text_rect)
 
 
+for i in range(5):
+    Heart(x, y, i)
+    x += 36
+
 running = True
 while running:
     animCounter += 1
@@ -290,7 +312,9 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                hp -= 1
         if event.type == pygame.MOUSEMOTION:
             x, y = event.pos
             if x + scope.width > WIDTH:
@@ -338,6 +362,7 @@ while running:
     tiles_group.draw(screen)
     player_group.draw(screen)
     enemies_group.draw(screen)
+    hearts_group.draw(screen_2)
     group.draw(screen_2)
     bullets_group.draw(screen_2)
     screen.blit(screen_2, (0, 0))
