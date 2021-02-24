@@ -343,7 +343,9 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                hp -= 1
         if event.type == pygame.MOUSEMOTION:
             x, y = event.pos
             if x + scope.width > WIDTH:
