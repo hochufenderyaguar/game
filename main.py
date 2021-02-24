@@ -101,13 +101,11 @@ class Tile(pygame.sprite.Sprite):
 class Hero(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(player_group, all_sprites)
-        self.pos_x, self.pos_y = x, y
-        self.coord_x = self.pos_x * tile_width
-        self.coord_y = self.pos_y * tile_height
+        self.pos_x, self.pos_y = x * tile_width, y * tile_height
         self.image = hero_animation['stand'][0]
         self.image.set_colorkey((255, 0, 255))
         # self.rect = self.image.get_rect()
-        self.rect = pygame.Rect(0, 0, 28, 28).move(self.coord_x, self.coord_y)
+        self.rect = pygame.Rect(0, 0, 28, 28).move(self.pos_x, self.pos_y)
 
     def move(self, x, y):
         self.rect.x += x
@@ -269,7 +267,7 @@ screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.mouse.set_visible(False)
 
 scope = Scope(0, 0)
-gun = Gun(player.coord_x, player.coord_y)
+gun = Gun(player.pos_x, player.pos_y)
 model = Model(200, 200)
 bullet_counter = 50
 
@@ -348,10 +346,10 @@ while running:
                 hp -= 1
         if event.type == pygame.MOUSEMOTION:
             x, y = event.pos
-            if x + scope.width > WIDTH:
-                x = WIDTH - scope.width
-            if y + scope.height > HEIGHT:
-                y = HEIGHT - scope.height
+            # if x + scope.width > WIDTH:
+            #     x = WIDTH - scope.width
+            # if y + scope.height > HEIGHT:
+            #     y = HEIGHT - scope.height
             scope.move(x, y)
         else:
             scope.move(scope.pos_x, scope.pos_y)
