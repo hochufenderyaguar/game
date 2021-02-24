@@ -66,6 +66,7 @@ walls_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 group = pygame.sprite.Group()
 bullets_group = pygame.sprite.Group()
+enemies_group = pygame.sprite.Group()
 
 
 class Tile(pygame.sprite.Sprite):
@@ -93,7 +94,8 @@ class Hero(pygame.sprite.Sprite):
     def move(self, x, y):
         self.rect.x += x
         self.rect.y += y
-        if pygame.sprite.spritecollide(self, walls_group, False):
+        if pygame.sprite.spritecollide(self, walls_group, False) or pygame.sprite.spritecollide(self, enemies_group,
+                                                                                                False):
             self.rect.x -= x
             self.rect.y -= y
         self.pos_x, self.pos_y = self.rect.x, self.rect.y
@@ -166,6 +168,10 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.y = self.pos_y
         if pygame.sprite.spritecollide(self, walls_group, False):
             self.kill()
+        enemy = pygame.sprite.spritecollideany(self, enemies_group)
+        if enemy:
+            self.kill()
+            enemy.count += 1
         self.rect = self.image.get_rect().move(round(x), round(y))
 
     def bullet_update(self):
@@ -181,27 +187,19 @@ class Bullet(pygame.sprite.Sprite):
             self.image = pygame.transform.rotate(images['bullet'], -deg)
 
 
-# class BulletLstEl:
-#     def __init__(self, bullet_obj, start_pos, end_pos):
-#         self.bullet_obj = bullet_obj
-#         self.start_pos = start_pos
-#         self.end_pos = end_pos
-
-
 class Model(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        super().__init__(group, all_sprites)
+        super().__init__(enemies_group, all_sprites)
         self.pos_x, self.pos_y = x, y
         self.image = images['model']
         self.width, self.height = self.image.get_width(), self.image.get_height()
-        self.rect = self.image.get_rect().move(x, y)
+        # self.rect = self.image.get_rect().move(x, y)
+        self.rect = pygame.Rect(0, 0, 28, 28).move(x, y)
         self.image.set_colorkey(self.image.get_at((0, 0)))
         self.count = 0
 
     def update(self):
-        if pygame.sprite.spritecollideany(self, bullets_group):
-            self.count += 1
-        if self.count > 70:
+        if self.count > 10:
             self.kill()
 
 
@@ -339,6 +337,7 @@ while running:
     all_sprites.draw(screen)
     tiles_group.draw(screen)
     player_group.draw(screen)
+    enemies_group.draw(screen)
     group.draw(screen_2)
     bullets_group.draw(screen_2)
     screen.blit(screen_2, (0, 0))
