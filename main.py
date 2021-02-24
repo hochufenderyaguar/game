@@ -10,7 +10,8 @@ guns_images = {'sword': pygame.transform.scale(pygame.image.load('sprites\\guns\
 
 images = {
     'scope': pygame.transform.scale(pygame.image.load('sprites\\scope1.png'), (30, 30)),
-    'bullet': pygame.transform.scale(pygame.image.load('sprites\\bullet.png'), (30, 30))
+    'bullet': pygame.transform.scale(pygame.image.load('sprites\\bullet.png'), (30, 30)),
+    'model': pygame.transform.scale(pygame.image.load('sprites\\model.png'), (30, 30))
 }
 
 tile_images = {
@@ -64,7 +65,7 @@ tiles_group = pygame.sprite.Group()
 walls_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 group = pygame.sprite.Group()
-bullets = pygame.sprite.Group()
+bullets_group = pygame.sprite.Group()
 
 
 class Tile(pygame.sprite.Sprite):
@@ -149,7 +150,7 @@ class Gun(pygame.sprite.Sprite):
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        super().__init__(group, all_sprites)
+        super().__init__(bullets_group, all_sprites)
         self.pos_x, self.pos_y = x, y
         self.image = images['bullet']
         self.width, self.height = self.image.get_width(), self.image.get_height()
@@ -184,6 +185,23 @@ class BulletLstEl:
         self.bullet_obj = bullet_obj
         self.start_pos = start_pos
         self.end_pos = end_pos
+
+
+class Model(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(group, all_sprites)
+        self.pos_x, self.pos_y = x, y
+        self.image = images['model']
+        self.width, self.height = self.image.get_width(), self.image.get_height()
+        self.rect = self.image.get_rect().move(x, y)
+        self.image.set_colorkey(self.image.get_at((0, 0)))
+        self.count = 0
+
+    def update(self):
+        if pygame.sprite.spritecollideany(self, bullets_group):
+            self.count += 1
+        if self.count > 70:
+            self.kill()
 
 
 def load_level(filename):
@@ -234,6 +252,7 @@ pygame.mouse.set_visible(False)
 scope = Scope(0, 0)
 gun = Gun(0, 0)
 gun.move(player.pos_x, player.pos_y)
+model = Model(200, 200)
 bullets_lst = []
 
 CONST = 0.7
@@ -308,6 +327,7 @@ while running:
     tiles_group.draw(screen)
     player_group.draw(screen)
     group.draw(screen_2)
+    bullets_group.draw(screen_2)
     screen.blit(screen_2, (0, 0))
     pygame.display.flip()
     clock.tick(FPS)
