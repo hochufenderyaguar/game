@@ -149,9 +149,10 @@ class Gun(pygame.sprite.Sprite):
 
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, end_pos):
         super().__init__(bullets_group, all_sprites)
         self.pos_x, self.pos_y = x, y
+        self.end_pos = end_pos
         self.image = images['bullet']
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = self.image.get_rect().move(x, y)
@@ -180,11 +181,11 @@ class Bullet(pygame.sprite.Sprite):
             self.image = pygame.transform.rotate(images['bullet'], -deg)
 
 
-class BulletLstEl:
-    def __init__(self, bullet_obj, start_pos, end_pos):
-        self.bullet_obj = bullet_obj
-        self.start_pos = start_pos
-        self.end_pos = end_pos
+# class BulletLstEl:
+#     def __init__(self, bullet_obj, start_pos, end_pos):
+#         self.bullet_obj = bullet_obj
+#         self.start_pos = start_pos
+#         self.end_pos = end_pos
 
 
 class Model(pygame.sprite.Sprite):
@@ -253,7 +254,7 @@ scope = Scope(0, 0)
 gun = Gun(0, 0)
 gun.move(player.pos_x, player.pos_y)
 model = Model(200, 200)
-bullets_lst = []
+bullet_counter = 50
 
 CONST = 0.7
 
@@ -270,6 +271,17 @@ def way_to_target(target_pos, bullet_pos):
     new_bullet_vector = bullet_vector + direction_vector * step_distance
 
     return new_bullet_vector.x, new_bullet_vector.y
+
+
+font_name = pygame.font.match_font('arial')
+
+
+def draw_text(screen, text, size, x, y):
+    font = pygame.font.Font(font_name, size)
+    text_surface = font.render(text, True, (255, 255, 255))
+    text_rect = text_surface.get_rect()
+    text_rect.midtop = (x, y)
+    screen.blit(text_surface, text_rect)
 
 
 running = True
@@ -290,10 +302,12 @@ while running:
             scope.move(x, y)
         else:
             scope.move(scope.pos_x, scope.pos_y)
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == pygame.BUTTON_LEFT:
-                bullets_lst.append(BulletLstEl(Bullet(player.pos_x, player.pos_y), (player.pos_x, player.pos_y),
-                                               (scope.pos_x, scope.pos_y)))
+        if bullet_counter > 0:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == pygame.BUTTON_LEFT:
+                    Bullet(player.pos_x, player.pos_y, (scope.pos_x, scope.pos_y))
+                    bullet_counter -= 1
+
     keys = pygame.key.get_pressed()
     if keys[pygame.K_w]:
         player.move(0, -5)
@@ -311,14 +325,13 @@ while running:
     if not (keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]):
         moving_right = moving_left = False
 
-    for bullet in bullets_lst[:]:
-        if abs(bullet.start_pos[0] - bullet.end_pos[0]) <= 5 and abs(bullet.start_pos[1] - bullet.end_pos[1]) <= 5:
-            bullets_lst.remove(bullet)
-            bullet.bullet_obj.kill()
+    for bullet in bullets_group:
+        if abs(bullet.pos_x - bullet.end_pos[0]) <= 5 and abs(bullet.pos_y - bullet.end_pos[1]) <= 5:
+            bullet.kill()
         else:
-            follower = way_to_target((bullet.bullet_obj.pos_x, bullet.bullet_obj.pos_y), bullet.end_pos)
-            bullet.bullet_obj.move(*follower)
-            bullet.start_pos = (bullet.bullet_obj.pos_x, bullet.bullet_obj.pos_y)
+            follower = way_to_target((bullet.pos_x, bullet.pos_y), bullet.end_pos)
+            bullet.move(*follower)
+
     gun.move(player.pos_x, player.pos_y)
 
     screen.fill((0, 0, 0))
@@ -329,6 +342,7 @@ while running:
     group.draw(screen_2)
     bullets_group.draw(screen_2)
     screen.blit(screen_2, (0, 0))
+    draw_text(screen, str(bullet_counter), 25, 15, 3)
     pygame.display.flip()
     clock.tick(FPS)
 
