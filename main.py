@@ -1,6 +1,7 @@
 import pygame
 import random
 from math import degrees, atan
+from ctypes import *
 
 guns_images = {'sword': pygame.transform.scale(pygame.image.load('sprites\\guns\\sword.png'), (23, 6)),
                'gun1': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun1.png'), (20, 5)),
@@ -53,7 +54,6 @@ hero_animation = {
             pygame.transform.scale(pygame.image.load('sprites\\hero_animation\\move_5.png'), (32, 32)), True,
             False)]
 }
-
 tile_width = tile_height = 30
 animCounter = 0
 clock = pygame.time.Clock()
@@ -107,7 +107,7 @@ class Hero(pygame.sprite.Sprite):
         self.image = hero_animation['stand'][0]
         self.image.set_colorkey((255, 0, 255))
         # self.rect = self.image.get_rect()
-        self.rect = pygame.Rect(0, 0, 28, 28)
+        self.rect = pygame.Rect(0, 0, 28, 28).move(self.coord_x, self.coord_y)
 
     def move(self, x, y):
         self.rect.x += x
@@ -228,7 +228,7 @@ def load_level(filename):
 
     max_width = max(map(len, level_map))
 
-    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
+    return list(map(lambda x: x.ljust(max_width, '#'), level_map))
 
 
 level = load_level('level.txt')
@@ -236,13 +236,14 @@ level = load_level('level.txt')
 
 def generate_level(level):
     new_player, x, y = None, None, None
+    player_x, player_y = None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '#':
                 Tile('tile', x, y, tiles_group)
             elif level[y][x] == '@':
+                player_x, player_y = x, y
                 Tile('tile', x, y, tiles_group)
-                new_player = Hero(x, y)
             elif level[y][x] == '1':
                 Tile('upper_left_corner', x, y, walls_group)
             elif level[y][x] == '2':
@@ -253,22 +254,22 @@ def generate_level(level):
                 Tile('bottom_right_corner', x, y, walls_group)
             elif level[y][x] == '!':
                 Tile('walls', x, y, walls_group)
+    new_player = Hero(player_x, player_y)
     return new_player, x, y
 
 
 player, level_x, level_y = generate_level(level)
-
 pygame.init()
 pygame.display.set_caption('The scrap knigth!')
-WIDTH, HEIGHT = len(level[0]) * tile_width, len(level) * tile_height
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-# screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
+# WIDTH, HEIGHT = len(level[0]) * tile_width, len(level) * tile_height
+WIDTH, HEIGHT = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)
+# screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+# screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.mouse.set_visible(False)
 
 scope = Scope(0, 0)
-gun = Gun(0, 0)
-gun.move(player.pos_x, player.pos_y)
+gun = Gun(player.coord_x, player.coord_y)
 model = Model(200, 200)
 bullet_counter = 50
 
@@ -300,6 +301,36 @@ def draw_text(screen, text, size, x, y):
     screen.blit(text_surface, text_rect)
 
 
+class Camera(object):
+    def __init__(self, camera_func, width, height):
+        self.camera_func = camera_func
+        self.state = pygame.Rect(0, 0, width, height)
+
+    def apply(self, target):
+        return target.rect.move(self.state.topleft)
+
+    def update(self, target):
+        self.state = self.camera_func(self.state, target.rect)
+
+
+def camera_configure(camera, target_rect):
+    left, top, _, _ = target_rect
+    _, _, w, h = camera
+    left, top = -left + WIDTH / 2, -top + HEIGHT / 2
+
+    left = min(0, left)  # Не движемся дальше левой границы
+    left = max(-(camera.width - WIDTH), left)  # Не движемся дальше правой границы
+    top = max(-(camera.height - HEIGHT), top)  # Не движемся дальше нижней границы
+    top = min(0, top)  # Не движемся дальше верхней границы
+
+    return pygame.Rect(left, top, w, h)
+
+
+total_level_width = len(level[0]) * tile_width  # Высчитываем фактическую ширину уровня
+total_level_height = len(level) * tile_height  # высоту
+
+camera = Camera(camera_configure, total_level_width, total_level_height)
+
 for i in range(5):
     Heart(x, y, i)
     x += 36
@@ -312,9 +343,7 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                hp -= 1
+
         if event.type == pygame.MOUSEMOTION:
             x, y = event.pos
             if x + scope.width > WIDTH:
@@ -324,6 +353,7 @@ while running:
             scope.move(x, y)
         else:
             scope.move(scope.pos_x, scope.pos_y)
+
         if bullet_counter > 0:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == pygame.BUTTON_LEFT:
@@ -331,6 +361,8 @@ while running:
                     bullet_counter -= 1
 
     keys = pygame.key.get_pressed()
+    if keys[pygame.K_ESCAPE]:
+        running = False
     if keys[pygame.K_w]:
         player.move(0, -5)
         moving_right = True
@@ -354,18 +386,12 @@ while running:
             follower = way_to_target((bullet.pos_x, bullet.pos_y), bullet.end_pos)
             bullet.move(*follower)
 
-    gun.move(player.pos_x, player.pos_y)
-
-    screen.fill((0, 0, 0))
     all_sprites.update()
-    all_sprites.draw(screen)
-    tiles_group.draw(screen)
-    player_group.draw(screen)
-    enemies_group.draw(screen)
-    hearts_group.draw(screen_2)
-    group.draw(screen_2)
-    bullets_group.draw(screen_2)
-    screen.blit(screen_2, (0, 0))
+    camera.update(player)
+    for sprite in all_sprites:
+        screen.blit(sprite.image, camera.apply(sprite))
+
+    gun.move(player.pos_x, player.pos_y)
     draw_text(screen, str(bullet_counter), 25, 15, 3)
     pygame.display.flip()
     clock.tick(FPS)
