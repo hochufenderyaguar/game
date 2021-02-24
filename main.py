@@ -62,7 +62,7 @@ moving_right = moving_left = False
 hp = 4
 full_health = pygame.image.load('sprites/full_health.png')
 zero_health = pygame.image.load('sprites/zero_health.png')
-x = 1000
+x = 1700
 y = 15
 
 all_sprites = pygame.sprite.Group()
@@ -73,11 +73,13 @@ group = pygame.sprite.Group()
 bullets_group = pygame.sprite.Group()
 enemies_group = pygame.sprite.Group()
 hearts_group = pygame.sprite.Group()
+all_sprites1 = pygame.sprite.Group()
+scope_group = pygame.sprite.Group()
 
 
 class Heart(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, i):
-        super().__init__(hearts_group, all_sprites)
+        super().__init__(hearts_group, all_sprites1)
         self.pos_x, self.pos_y, self.i = pos_x, pos_y, i
         self.image = full_health
         self.rect = self.image.get_rect().move(pos_x, pos_y)
@@ -85,6 +87,9 @@ class Heart(pygame.sprite.Sprite):
     def update(self):
         if self.i > hp:
             self.image = zero_health
+
+    def move(self, x, y):
+        self.rect = self.image.get_rect().move(x, y)
 
 
 class Tile(pygame.sprite.Sprite):
@@ -128,7 +133,7 @@ class Hero(pygame.sprite.Sprite):
 
 class Scope(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        super().__init__(group, all_sprites)
+        super().__init__(scope_group, all_sprites1)
         self.pos_x, self.pos_y = x, y
         self.image = images['scope']
         self.width, self.height = self.image.get_width(), self.image.get_height()
@@ -263,7 +268,7 @@ pygame.display.set_caption('The scrap knigth!')
 WIDTH, HEIGHT = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)
 # screen = pygame.display.set_mode((WIDTH, HEIGHT))
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-# screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
+screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.mouse.set_visible(False)
 
 scope = Scope(0, 0)
@@ -346,10 +351,10 @@ while running:
                 hp -= 1
         if event.type == pygame.MOUSEMOTION:
             x, y = event.pos
-            # if x + scope.width > WIDTH:
-            #     x = WIDTH - scope.width
-            # if y + scope.height > HEIGHT:
-            #     y = HEIGHT - scope.height
+            if x + scope.width > WIDTH:
+                x = WIDTH - scope.width
+            if y + scope.height > HEIGHT:
+                y = HEIGHT - scope.height
             scope.move(x, y)
         else:
             scope.move(scope.pos_x, scope.pos_y)
@@ -387,12 +392,21 @@ while running:
             bullet.move(*follower)
 
     all_sprites.update()
+    all_sprites1.update()
     camera.update(player)
     for sprite in all_sprites:
         screen.blit(sprite.image, camera.apply(sprite))
 
     gun.move(player.pos_x, player.pos_y)
     draw_text(screen, str(bullet_counter), 25, 15, 3)
+    x = 1700
+    y = 15
+    for heart in hearts_group:
+        heart.move(x, y)
+        x += 36
+    all_sprites1.draw(screen_2)
+    # hearts_group.draw(screen_2)
+    screen.blit(screen_2, (0, 0))
     pygame.display.flip()
     clock.tick(FPS)
 
