@@ -393,33 +393,23 @@ while running:
                 if event.button == pygame.BUTTON_LEFT:
                     if MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
                             and MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
-                        Bullet(player.pos_x, player.pos_y, (player.pos_x - WIDTH // 2 + scope.pos_x,
-                                                            player.pos_y - HEIGHT // 2 + scope.pos_y))
+                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
                     elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
                             and player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
-                        Bullet(player.pos_x, player.pos_y, (player.pos_x - WIDTH // 2 + scope.pos_x,
-                                                            player.pos_y - HEIGHT // 2 + scope.pos_y - (
-                                                                    player.pos_y - (MAP_HEIGHT - HEIGHT // 2))))
+                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
                     elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2 \
                             and player.pos_x >= MAP_WIDTH - WIDTH // 2:
-                        Bullet(player.pos_x, player.pos_y,
-                               (player.pos_x - WIDTH // 2 + scope.pos_x - (player.pos_x - (MAP_WIDTH - WIDTH // 2)),
-                                player.pos_y - HEIGHT // 2 + scope.pos_y))
+                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
                     elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2 and player.pos_x >= MAP_WIDTH - WIDTH // 2:
-                        Bullet(player.pos_x, player.pos_y, (
-                            player.pos_x - WIDTH // 2 + scope.pos_x - (player.pos_x - (MAP_WIDTH - WIDTH // 2)),
-                            player.pos_y - HEIGHT // 2 + scope.pos_y - (player.pos_y - (MAP_HEIGHT - HEIGHT // 2))))
+                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
                     elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
-                        Bullet(player.pos_x, player.pos_y, (scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y))
+                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
                     elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
-                        Bullet(player.pos_x, player.pos_y, (scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y - (
-                                player.pos_y - (MAP_HEIGHT - HEIGHT // 2))))
+                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
                     elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2:
-                        Bullet(player.pos_x, player.pos_y, (player.pos_x - WIDTH // 2 + scope.pos_x, scope.pos_y))
+                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
                     elif player.pos_x >= MAP_WIDTH - WIDTH // 2:
-                        Bullet(player.pos_x, player.pos_y, (
-                            player.pos_x - WIDTH // 2 + scope.pos_x - (player.pos_x - (MAP_WIDTH - WIDTH // 2)),
-                            scope.pos_y))
+                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
                     else:
                         Bullet(player.pos_x, player.pos_y, (scope.pos_x, scope.pos_y))
                     bullet_counter -= 1
