@@ -135,6 +135,7 @@ class Scope(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(scope_group, all_sprites1)
         self.pos_x, self.pos_y = x, y
+        self.x, self.y = x, y
         self.image = images['scope']
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = self.image.get_rect().move(x, y)
@@ -160,12 +161,12 @@ class Gun(pygame.sprite.Sprite):
 
     def update(self):
         try:
-            tg = ((scope.pos_y - self.pos_y) / (scope.pos_x - self.pos_x))
+            tg = ((scope.y - self.pos_y) / (scope.x - self.pos_x))
         except ZeroDivisionError:
             tg = 0
         rad = atan(tg)
         deg = degrees(rad)
-        if self.pos_x > scope.pos_x:
+        if self.pos_x > scope.x:
             self.image = pygame.transform.flip(pygame.transform.rotate(guns_images['gun1'], deg), True, False)
         else:
             self.image = pygame.transform.rotate(guns_images['gun1'], -deg)
@@ -197,12 +198,12 @@ class Bullet(pygame.sprite.Sprite):
 
     def bullet_update(self):
         try:
-            tg = ((scope.pos_y - self.pos_y) / (scope.pos_x - self.pos_x))
+            tg = ((self.end_pos[1] - self.pos_y) / (self.end_pos[0] - self.pos_x))
         except ZeroDivisionError:
             tg = 0
         rad = atan(tg)
         deg = degrees(rad)
-        if self.pos_x > scope.pos_x:
+        if self.pos_x > self.end_pos[0]:
             self.image = pygame.transform.flip(pygame.transform.rotate(images['bullet'], deg), True, False)
         else:
             self.image = pygame.transform.rotate(images['bullet'], -deg)
@@ -264,8 +265,9 @@ def generate_level(level):
 player, level_x, level_y = generate_level(level)
 pygame.init()
 pygame.display.set_caption('The scrap knigth!')
-# WIDTH, HEIGHT = len(level[0]) * tile_width, len(level) * tile_height
+MAP_WIDTH, MAP_HEIGHT = len(level[0]) * tile_width, len(level) * tile_height
 WIDTH, HEIGHT = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)
+# WIDTH, HEIGHT = 500, 500
 # screen = pygame.display.set_mode((WIDTH, HEIGHT))
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -340,6 +342,33 @@ for i in range(5):
 
 running = True
 while running:
+    if MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
+            and MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
+        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y
+    elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
+            and player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
+        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y - (
+                player.pos_y - (MAP_HEIGHT - HEIGHT // 2))
+    elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2 \
+            and player.pos_x >= MAP_WIDTH - WIDTH // 2:
+        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x - (
+                player.pos_x - (MAP_WIDTH - WIDTH // 2)), player.pos_y - HEIGHT // 2 + scope.pos_y
+    elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2 and player.pos_x >= MAP_WIDTH - WIDTH // 2:
+        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x - (
+                player.pos_x - (MAP_WIDTH - WIDTH // 2)), player.pos_y - HEIGHT // 2 + scope.pos_y - (
+                                   player.pos_y - (MAP_HEIGHT - HEIGHT // 2))
+    elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
+        scope.x, scope.y = scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y
+    elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
+        scope.x, scope.y = scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y - (
+                player.pos_y - (MAP_HEIGHT - HEIGHT // 2))
+    elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2:
+        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x, scope.pos_y
+    elif player.pos_x >= MAP_WIDTH - WIDTH // 2:
+        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x - (
+                player.pos_x - (MAP_WIDTH - WIDTH // 2)), scope.pos_y
+    else:
+        scope.x, scope.y = scope.pos_x, scope.pos_y
     animCounter += 1
     if animCounter == 48:
         animCounter = 0
@@ -362,7 +391,37 @@ while running:
         if bullet_counter > 0:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == pygame.BUTTON_LEFT:
-                    Bullet(player.pos_x, player.pos_y, (scope.pos_x, scope.pos_y))
+                    if MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
+                            and MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
+                        Bullet(player.pos_x, player.pos_y, (player.pos_x - WIDTH // 2 + scope.pos_x,
+                                                            player.pos_y - HEIGHT // 2 + scope.pos_y))
+                    elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
+                            and player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
+                        Bullet(player.pos_x, player.pos_y, (player.pos_x - WIDTH // 2 + scope.pos_x,
+                                                            player.pos_y - HEIGHT // 2 + scope.pos_y - (
+                                                                    player.pos_y - (MAP_HEIGHT - HEIGHT // 2))))
+                    elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2 \
+                            and player.pos_x >= MAP_WIDTH - WIDTH // 2:
+                        Bullet(player.pos_x, player.pos_y,
+                               (player.pos_x - WIDTH // 2 + scope.pos_x - (player.pos_x - (MAP_WIDTH - WIDTH // 2)),
+                                player.pos_y - HEIGHT // 2 + scope.pos_y))
+                    elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2 and player.pos_x >= MAP_WIDTH - WIDTH // 2:
+                        Bullet(player.pos_x, player.pos_y, (
+                            player.pos_x - WIDTH // 2 + scope.pos_x - (player.pos_x - (MAP_WIDTH - WIDTH // 2)),
+                            player.pos_y - HEIGHT // 2 + scope.pos_y - (player.pos_y - (MAP_HEIGHT - HEIGHT // 2))))
+                    elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
+                        Bullet(player.pos_x, player.pos_y, (scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y))
+                    elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
+                        Bullet(player.pos_x, player.pos_y, (scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y - (
+                                player.pos_y - (MAP_HEIGHT - HEIGHT // 2))))
+                    elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2:
+                        Bullet(player.pos_x, player.pos_y, (player.pos_x - WIDTH // 2 + scope.pos_x, scope.pos_y))
+                    elif player.pos_x >= MAP_WIDTH - WIDTH // 2:
+                        Bullet(player.pos_x, player.pos_y, (
+                            player.pos_x - WIDTH // 2 + scope.pos_x - (player.pos_x - (MAP_WIDTH - WIDTH // 2)),
+                            scope.pos_y))
+                    else:
+                        Bullet(player.pos_x, player.pos_y, (scope.pos_x, scope.pos_y))
                     bullet_counter -= 1
 
     keys = pygame.key.get_pressed()
@@ -396,7 +455,6 @@ while running:
     camera.update(player)
     for sprite in all_sprites:
         screen.blit(sprite.image, camera.apply(sprite))
-
     gun.move(player.pos_x, player.pos_y)
     draw_text(screen, str(bullet_counter), 25, 15, 3)
     x = 1700
