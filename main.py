@@ -59,7 +59,6 @@ animCounter = 0
 clock = pygame.time.Clock()
 FPS = 30
 moving_right = moving_left = False
-hp = 4
 full_health = pygame.image.load('sprites/full_health.png')
 zero_health = pygame.image.load('sprites/zero_health.png')
 x = 1700
@@ -71,6 +70,7 @@ walls_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 group = pygame.sprite.Group()
 bullets_group = pygame.sprite.Group()
+enemy_bullets_group = pygame.sprite.Group()
 enemies_group = pygame.sprite.Group()
 hearts_group = pygame.sprite.Group()
 all_sprites1 = pygame.sprite.Group()
@@ -85,7 +85,7 @@ class Heart(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(pos_x, pos_y)
 
     def update(self):
-        if self.i > hp:
+        if self.i > player.hp:
             self.image = zero_health
 
     def move(self, x, y):
@@ -106,6 +106,7 @@ class Tile(pygame.sprite.Sprite):
 class Hero(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(player_group, all_sprites)
+        self.hp = 4
         self.pos_x, self.pos_y = x * tile_width, y * tile_height
         self.image = hero_animation['stand'][0]
         self.image.set_colorkey((255, 0, 255))
@@ -115,6 +116,10 @@ class Hero(pygame.sprite.Sprite):
     def move(self, x, y):
         self.rect.x += x
         self.rect.y += y
+        if pygame.sprite.spritecollide(self, enemy_bullets_group, False):
+            self.hp -= 1
+            if self.hp < 0:
+                self.kill()
         if pygame.sprite.spritecollide(self, walls_group, False) or pygame.sprite.spritecollide(self, enemies_group,
                                                                                                 False):
             self.rect.x -= x
@@ -207,6 +212,17 @@ class Bullet(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(pygame.transform.rotate(images['bullet'], deg), True, False)
         else:
             self.image = pygame.transform.rotate(images['bullet'], -deg)
+
+
+class EnemyBullet(pygame.sprite.Sprite):
+    def __init__(self, x, y, end_pos):
+        super().__init__(enemy_bullets_group, all_sprites)
+        self.pos_x, self.pos_y = x, y
+        self.end_pos = end_pos
+        self.image = images['bullet']
+        self.width, self.height = self.image.get_width(), self.image.get_height()
+        self.rect = self.image.get_rect().move(x, y)
+        self.image.set_colorkey(self.image.get_at((0, 0)))
 
 
 class Model(pygame.sprite.Sprite):
@@ -377,7 +393,7 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                hp -= 1
+                player.hp -= 1
         if event.type == pygame.MOUSEMOTION:
             x, y = event.pos
             if x + scope.width > WIDTH:
