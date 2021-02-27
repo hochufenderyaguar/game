@@ -125,7 +125,7 @@ class Hero(pygame.sprite.Sprite):
     def move(self, x, y):
         self.rect.x += x
         self.rect.y += y
-        if pygame.sprite.spritecollideany(self, enemy_bullets_group, False):
+        if pygame.sprite.spritecollide(self, enemy_bullets_group, False):
             self.hp -= 1
             if self.hp < 0:
                 game_over()
@@ -315,7 +315,6 @@ class EnemyGun(pygame.sprite.Sprite):
             self.shoot()
 
     def shoot(self):
-        print(((self.pos_x - player.pos_x) ** 2  + (self.pos_y - player.pos_y) ** 2) ** 0.5)
         if ((self.pos_x - player.pos_x) ** 2  + (self.pos_y - player.pos_y) ** 2) ** 0.5 < WIDTH // 2:
             EnemyBullet(self.pos_x, self.pos_y, (player.pos_x, player.pos_y))
 
