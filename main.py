@@ -550,7 +550,7 @@ def start_the_game():
 
 menu = Menu(HEIGHT, WIDTH, 'The scrap knight!', theme=my_theme)
 menu.add_button('Play', start_the_game)
-menu.add_button('Quit', pygame_menu.events.EXIT)
 menu.add_button('control', open_instruction)
+menu.add_button('Quit', pygame_menu.events.EXIT)
 menu.mainloop(screen)
 pygame.quit()
