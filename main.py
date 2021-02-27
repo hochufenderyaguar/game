@@ -177,7 +177,10 @@ class Gun(pygame.sprite.Sprite):
         try:
             tg = ((scope.y - self.pos_y) / (scope.x - self.pos_x))
         except ZeroDivisionError:
-            tg = 0
+            if scope.y > self.pos_y:
+                tg = 90
+            else:
+                tg = -90
         rad = atan(tg)
         deg = degrees(rad)
         if self.pos_x > scope.x:
@@ -236,8 +239,6 @@ class EnemyBullet(pygame.sprite.Sprite):
         self.image.set_colorkey(self.image.get_at((0, 0)))
 
 
-
-
 class Model(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(enemies_group, all_sprites)
@@ -271,7 +272,10 @@ class EnemyGun(pygame.sprite.Sprite):
         try:
             tg = ((player.pos_y - self.pos_y) / (player.pos_x - self.pos_x))
         except ZeroDivisionError:
-            tg = 0
+            if player.pos_y > self.pos_y:
+                tg = 90
+            else:
+                tg = -90
         rad = atan(tg)
         deg = degrees(rad)
         if self.pos_x > player.pos_x:
