@@ -1,7 +1,11 @@
 import pygame
+import pygame_menu
 import random
 from math import degrees, atan
 from ctypes import *
+
+from pygame_menu import Menu
+from pygame_menu.themes import Theme
 
 guns_images = {'sword': pygame.transform.scale(pygame.image.load('sprites\\guns\\sword.png'), (23, 6)),
                'gun1': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun1.png'), (20, 5)),
@@ -119,7 +123,7 @@ class Hero(pygame.sprite.Sprite):
         if pygame.sprite.spritecollide(self, enemy_bullets_group, False):
             self.hp -= 1
             if self.hp < 0:
-                self.kill()
+                game_over()
         if pygame.sprite.spritecollide(self, walls_group, False) or pygame.sprite.spritecollide(self, enemies_group,
                                                                                                 False):
             self.rect.x -= x
@@ -172,6 +176,8 @@ class Gun(pygame.sprite.Sprite):
         rad = atan(tg)
         deg = degrees(rad)
         if self.pos_x > scope.x:
+            # if 0 > deg > -90:
+            #     self.rect.topleft = x + tile_width // 2 - ((90 + deg) * (15 // 90)), y + tile_height // 2 + 5
             self.image = pygame.transform.flip(pygame.transform.rotate(guns_images['gun1'], deg), True, False)
         else:
             self.image = pygame.transform.rotate(guns_images['gun1'], -deg)
@@ -281,6 +287,9 @@ def generate_level(level):
 player, level_x, level_y = generate_level(level)
 pygame.init()
 pygame.display.set_caption('The scrap knigth!')
+pygame.mixer.music.load('sounds/Candy.mp3')
+vol = 1.0
+pygame.mixer.music.set_volume(vol)
 MAP_WIDTH, MAP_HEIGHT = len(level[0]) * tile_width, len(level) * tile_height
 WIDTH, HEIGHT = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)
 # WIDTH, HEIGHT = 500, 500
@@ -347,6 +356,30 @@ def camera_configure(camera, target_rect):
     return pygame.Rect(left, top, w, h)
 
 
+def press_continue_button():
+    global pause
+    pause.disable()
+
+
+def put_on_pause():
+    global pause
+    pause = Menu(HEIGHT, WIDTH, 'pause', theme=pygame_menu.themes.THEME_BLUE)
+    pause.add_button('Continue', press_continue_button)
+    pause.add_button('Quit', pygame_menu.events.EXIT)
+    pause.mainloop(screen)
+    pygame.display.update()
+
+
+def game_over():
+    font = pygame_menu.font.FONT_8BIT
+    my_theme = Theme(widget_font=font)
+    game_over_menu = Menu(HEIGHT, WIDTH, theme=my_theme, title='')
+    game_over_menu.add_label("Game over")
+    game_over_menu.add_button('Menu', pygame_menu.events.EXIT)
+    game_over_menu.add_button('Quit', pygame_menu.events.EXIT)
+    game_over_menu.mainloop(screen)
+
+
 total_level_width = len(level[0]) * tile_width  # Высчитываем фактическую ширину уровня
 total_level_height = len(level) * tile_height  # высоту
 
@@ -356,6 +389,7 @@ for i in range(5):
     Heart(x, y, i)
     x += 36
 
+pygame.mixer.music.play(-1)
 running = True
 while running:
     if MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
@@ -394,6 +428,8 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
                 player.hp -= 1
+            elif event.key == pygame.K_p:
+                put_on_pause()
         if event.type == pygame.MOUSEMOTION:
             x, y = event.pos
             if x + scope.width > WIDTH:
@@ -431,7 +467,18 @@ while running:
                     bullet_counter -= 1
 
     keys = pygame.key.get_pressed()
+    if keys[pygame.K_0]:
+        pygame.mixer.music.stop()
+    if keys[pygame.K_9]:
+        pygame.mixer.music.play()
+    if keys[pygame.K_UP]:
+        vol += 0.1
+        pygame.mixer.music.set_volume(vol)
+    if keys[pygame.K_DOWN]:
+        vol -= 0.1
+        pygame.mixer.music.set_volume(vol)
     if keys[pygame.K_ESCAPE]:
+        pygame.mixer.music.stop()
         running = False
     if keys[pygame.K_w]:
         player.move(0, -5)
@@ -469,7 +516,6 @@ while running:
         heart.move(x, y)
         x += 36
     all_sprites1.draw(screen_2)
-    # hearts_group.draw(screen_2)
     screen.blit(screen_2, (0, 0))
     pygame.display.flip()
     clock.tick(FPS)
