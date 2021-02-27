@@ -65,8 +65,7 @@ FPS = 30
 moving_right = moving_left = False
 full_health = pygame.image.load('sprites/full_health.png')
 zero_health = pygame.image.load('sprites/zero_health.png')
-x = 1700
-y = 15
+
 
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
@@ -384,7 +383,8 @@ total_level_width = len(level[0]) * tile_width  # Высчитываем фак�
 total_level_height = len(level) * tile_height  # высоту
 
 camera = Camera(camera_configure, total_level_width, total_level_height)
-
+x = WIDTH - 36 * 5 - 5
+y = 15
 for i in range(5):
     Heart(x, y, i)
     x += 36
@@ -510,11 +510,6 @@ while running:
         screen.blit(sprite.image, camera.apply(sprite))
     gun.move(player.pos_x, player.pos_y)
     draw_text(screen, str(bullet_counter), 25, 15, 3)
-    x = 1700
-    y = 15
-    for heart in hearts_group:
-        heart.move(x, y)
-        x += 36
     all_sprites1.draw(screen_2)
     screen.blit(screen_2, (0, 0))
     pygame.display.flip()
