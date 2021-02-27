@@ -125,7 +125,7 @@ class Hero(pygame.sprite.Sprite):
     def move(self, x, y):
         self.rect.x += x
         self.rect.y += y
-        if pygame.sprite.spritecollide(self, enemy_bullets_group, False):
+        if pygame.sprite.spritecollideany(self, enemy_bullets_group, False):
             self.hp -= 1
             if self.hp < 0:
                 game_over()
@@ -237,6 +237,32 @@ class EnemyBullet(pygame.sprite.Sprite):
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = self.image.get_rect().move(x, y)
         self.image.set_colorkey(self.image.get_at((0, 0)))
+        self.bullet_update()
+
+    def move(self, x, y):
+        self.pos_x = round(x)
+        self.pos_y = round(y)
+        self.rect.x = self.pos_x
+        self.rect.y = self.pos_y
+        if pygame.sprite.spritecollide(self, walls_group, False):
+            self.kill()
+        enemy = pygame.sprite.spritecollideany(self, enemies_group)
+        if enemy:
+            self.kill()
+            enemy.count += 1
+        self.rect = self.image.get_rect().move(round(x), round(y))
+
+    def bullet_update(self):
+        try:
+            tg = ((self.end_pos[1] - self.pos_y) / (self.end_pos[0] - self.pos_x))
+        except ZeroDivisionError:
+            tg = 0
+        rad = atan(tg)
+        deg = degrees(rad)
+        if self.pos_x > self.end_pos[0]:
+            self.image = pygame.transform.flip(pygame.transform.rotate(images['bullet'], deg), True, False)
+        else:
+            self.image = pygame.transform.rotate(images['bullet'], -deg)
 
 
 class Model(pygame.sprite.Sprite):
@@ -263,12 +289,15 @@ class EnemyGun(pygame.sprite.Sprite):
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = self.image.get_rect().move(self.pos_x, self.pos_y)
         self.image.set_colorkey(self.image.get_at((0, 0)))
+        self.time = 0
 
     def move(self, x, y):
         self.pos_x, self.pos_y = x, y
         self.rect.topleft = x + tile_width // 2, y + tile_height // 2 + 5
 
     def update(self):
+        self.time += 1
+        self.time = self.time % 40
         try:
             tg = ((player.pos_y - self.pos_y) / (player.pos_x - self.pos_x))
         except ZeroDivisionError:
@@ -282,6 +311,13 @@ class EnemyGun(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(pygame.transform.rotate(guns_images['gun4'], deg), True, False)
         else:
             self.image = pygame.transform.rotate(guns_images['gun4'], -deg)
+        if self.time == 0:
+            self.shoot()
+
+    def shoot(self):
+        print(((self.pos_x - player.pos_x) ** 2  + (self.pos_y - player.pos_y) ** 2) ** 0.5)
+        if ((self.pos_x - player.pos_x) ** 2  + (self.pos_y - player.pos_y) ** 2) ** 0.5 < WIDTH // 2:
+            EnemyBullet(self.pos_x, self.pos_y, (player.pos_x, player.pos_y))
 
 
 def load_level(filename):
@@ -452,7 +488,8 @@ for i in range(5):
     Heart(x, y, i)
     x += 36
 
-shoot_sound = pygame.mixer.Sound('sounds/выстрел.mp3')
+shoot_sound = pygame.mixer.Sound('sounds/shoot.wav')
+cooldown_sound = pygame.mixer.Sound('sounds/cooldown.wav')
 shoot_sound.set_volume(0.5)
 
 
@@ -568,6 +605,12 @@ def start_the_game():
             moving_right = moving_left = False
 
         for bullet in bullets_group:
+            if abs(bullet.pos_x - bullet.end_pos[0]) <= 5 and abs(bullet.pos_y - bullet.end_pos[1]) <= 5:
+                bullet.kill()
+            else:
+                follower = way_to_target((bullet.pos_x, bullet.pos_y), bullet.end_pos)
+                bullet.move(*follower)
+        for bullet in enemy_bullets_group:
             if abs(bullet.pos_x - bullet.end_pos[0]) <= 5 and abs(bullet.pos_y - bullet.end_pos[1]) <= 5:
                 bullet.kill()
             else:
