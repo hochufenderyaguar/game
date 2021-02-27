@@ -9,12 +9,18 @@ from pygame_menu.themes import Theme
 
 guns_images = {'sword': pygame.transform.scale(pygame.image.load('sprites\\guns\\sword.png'), (23, 6)),
                'gun1': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun1.png'), (20, 5)),
-               'gun2': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun2.png'), (18, 5))
+               'gun2': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun2.png'), (18, 5)),
+               'gun3': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun3.png'), (14, 9)),
+               'gun4': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun4.png'), (22, 10)),
+               'gun5': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun5.png'), (15, 7)),
+               'shovel': pygame.transform.scale(pygame.image.load('sprites\\guns\\shovel.png'), (29, 7)),
+               'pickaxe': pygame.transform.scale(pygame.image.load('sprites\\guns\\pickaxe.png'), (25, 12))
                }
 
 images = {
     'scope': pygame.transform.scale(pygame.image.load('sprites\\scope1.png'), (30, 30)),
     'bullet': pygame.transform.scale(pygame.image.load('sprites\\bullet.png'), (30, 30)),
+    'bullet_3': pygame.transform.scale(pygame.image.load('sprites\\bullet_3.png'), (32, 14)),
     'model': pygame.transform.scale(pygame.image.load('sprites\\model.png'), (30, 30))
 }
 
@@ -65,7 +71,6 @@ FPS = 30
 moving_right = moving_left = False
 full_health = pygame.image.load('sprites/full_health.png')
 zero_health = pygame.image.load('sprites/zero_health.png')
-
 
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
@@ -285,9 +290,9 @@ def generate_level(level):
 
 player, level_x, level_y = generate_level(level)
 pygame.init()
-pygame.display.set_caption('The scrap knigth!')
+pygame.display.set_caption('The scrap knight!')
 pygame.mixer.music.load('sounds/Sewer.mp3')
-vol = 1.0
+vol = 0.01
 pygame.mixer.music.set_volume(vol)
 MAP_WIDTH, MAP_HEIGHT = len(level[0]) * tile_width, len(level) * tile_height
 WIDTH, HEIGHT = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)
@@ -472,10 +477,10 @@ while running:
     if keys[pygame.K_9]:
         pygame.mixer.music.play()
     if keys[pygame.K_UP]:
-        vol += 0.1
+        vol += 0.01
         pygame.mixer.music.set_volume(vol)
     if keys[pygame.K_DOWN]:
-        vol -= 0.1
+        vol -= 0.01
         pygame.mixer.music.set_volume(vol)
     if keys[pygame.K_ESCAPE]:
         pygame.mixer.music.stop()
