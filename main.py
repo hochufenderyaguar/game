@@ -1,10 +1,10 @@
+import random
 import pygame
 import pygame_menu
-import random
-from math import degrees, atan
 from ctypes import *
-
 from pygame_menu import Menu
+from math import degrees, atan
+from os import listdir
 from pygame_menu.themes import Theme
 
 guns_images = {'sword': pygame.transform.scale(pygame.image.load('sprites\\guns\\sword.png'), (23, 6)),
@@ -64,6 +64,9 @@ hero_animation = {
             pygame.transform.scale(pygame.image.load('sprites\\hero_animation\\move_5.png'), (32, 32)), True,
             False)]
 }
+pygame.init()
+pygame.display.set_caption('The scrap knight!')
+
 tile_width = tile_height = 30
 animCounter = 0
 clock = pygame.time.Clock()
@@ -71,19 +74,24 @@ FPS = 30
 moving_right = moving_left = False
 full_health = pygame.image.load('sprites/full_health.png')
 zero_health = pygame.image.load('sprites/zero_health.png')
+levels = listdir('levels')
+level_counter = 0
+score = 0
 
-all_sprites = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
-walls_group = pygame.sprite.Group()
-player_group = pygame.sprite.Group()
-group = pygame.sprite.Group()
-bullets_group = pygame.sprite.Group()
-enemy_bullets_group = pygame.sprite.Group()
-enemies_group = pygame.sprite.Group()
-hearts_group = pygame.sprite.Group()
-all_sprites1 = pygame.sprite.Group()
-scope_group = pygame.sprite.Group()
-enemy_guns = pygame.sprite.Group()
+shoot_sound = pygame.mixer.Sound('sounds/shoot.wav')
+cooldown_sound = pygame.mixer.Sound('sounds/cooldown.wav')
+shoot_sound.set_volume(0.5)
+
+pygame.mixer.music.load('sounds/Sewer.mp3')
+vol = 0.05
+pygame.mixer.music.set_volume(vol)
+
+WIDTH, HEIGHT = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)
+screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
+
+CONST = 0.7
+CONST1 = 0.005
 
 
 class Heart(pygame.sprite.Sprite):
@@ -123,13 +131,15 @@ class Hero(pygame.sprite.Sprite):
         self.rect = pygame.Rect(0, 0, 28, 28).move(self.pos_x, self.pos_y)
 
     def move(self, x, y):
-        self.rect.x += x
-        self.rect.y += y
-        if pygame.sprite.spritecollide(self, walls_group, False) or pygame.sprite.spritecollide(self, enemies_group,
-                                                                                                False):
-            self.rect.x -= x
-            self.rect.y -= y
-        self.pos_x, self.pos_y = self.rect.x, self.rect.y
+        # чтоб за границы не заходил, ток не работает(
+        if MAP_WIDTH > self.rect.x + x >= 0 and MAP_HEIGHT > self.rect.y + y >= 0:
+            self.rect.x += x
+            self.rect.y += y
+            if pygame.sprite.spritecollide(self, walls_group, False) or pygame.sprite.spritecollide(self, enemies_group,
+                                                                                                    False):
+                self.rect.x -= x
+                self.rect.y -= y
+            self.pos_x, self.pos_y = self.rect.x, self.rect.y
 
     def update(self):
         if moving_right:
@@ -157,6 +167,8 @@ class Scope(pygame.sprite.Sprite):
 
 
 class Gun(pygame.sprite.Sprite):
+    global scope
+
     def __init__(self, x, y):
         super().__init__(group, all_sprites)
         self.pos_x, self.pos_y = x, y
@@ -215,7 +227,10 @@ class Bullet(pygame.sprite.Sprite):
         try:
             tg = ((self.end_pos[1] - self.pos_y) / (self.end_pos[0] - self.pos_x))
         except ZeroDivisionError:
-            tg = 0
+            if scope.pos_y > self.pos_y:
+                tg = 90
+            else:
+                tg = -90
         rad = atan(tg)
         deg = degrees(rad)
         if self.pos_x > self.end_pos[0]:
@@ -253,7 +268,10 @@ class EnemyBullet(pygame.sprite.Sprite):
         try:
             tg = ((self.end_pos[1] - self.pos_y) / (self.end_pos[0] - self.pos_x))
         except ZeroDivisionError:
-            tg = 0
+            if player.pos_y > self.pos_y:
+                tg = 90
+            else:
+                tg = -90
         rad = atan(tg)
         deg = degrees(rad)
         if self.pos_x > self.end_pos[0]:
@@ -262,7 +280,7 @@ class EnemyBullet(pygame.sprite.Sprite):
             self.image = pygame.transform.rotate(images['bullet'], -deg)
 
 
-class Model(pygame.sprite.Sprite):
+class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(enemies_group, all_sprites)
         self.pos_x, self.pos_y = x, y
@@ -272,13 +290,25 @@ class Model(pygame.sprite.Sprite):
         self.rect = pygame.Rect(0, 0, 28, 28).move(x, y)
         self.image.set_colorkey(self.image.get_at((0, 0)))
         self.count = 0
+        self.time = 1
 
     def update(self):
+        global score
         if self.count > 10:
             self.kill()
+            score += 100
+
+    def move(self, x, y):
+        self.pos_x = round(x)
+        self.pos_y = round(y)
+        self.rect.x = self.pos_x
+        self.rect.y = self.pos_y
+        self.rect = self.image.get_rect().move(round(x), round(y))
 
 
 class EnemyGun(pygame.sprite.Sprite):
+    global player
+
     def __init__(self, x, y):
         super().__init__(enemy_guns, all_sprites)
         self.pos_x, self.pos_y = x, y
@@ -312,21 +342,18 @@ class EnemyGun(pygame.sprite.Sprite):
             self.shoot()
 
     def shoot(self):
-        if ((self.pos_x - player.pos_x) ** 2  + (self.pos_y - player.pos_y) ** 2) ** 0.5 < WIDTH // 2:
+        if ((self.pos_x - player.pos_x) ** 2 + (self.pos_y - player.pos_y) ** 2) ** 0.5 < WIDTH // 2:
             EnemyBullet(self.pos_x, self.pos_y, (player.pos_x, player.pos_y))
+            shoot_sound.play()
 
 
 def load_level(filename):
-    filename = "level.txt"
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
 
     max_width = max(map(len, level_map))
 
     return list(map(lambda x: x.ljust(max_width, '#'), level_map))
-
-
-level = load_level('level.txt')
 
 
 def generate_level(level):
@@ -349,31 +376,12 @@ def generate_level(level):
                 Tile('bottom_right_corner', x, y, walls_group)
             elif level[y][x] == '!':
                 Tile('walls', x, y, walls_group)
+            elif level[y][x] == 'e':
+                Tile('tile', x, y, tiles_group)
+                Enemy(x * tile_width, y * tile_height)
+                EnemyGun(x * tile_width, y * tile_height)
     new_player = Hero(player_x, player_y)
     return new_player, x, y
-
-
-player, level_x, level_y = generate_level(level)
-pygame.init()
-pygame.display.set_caption('The scrap knight!')
-pygame.mixer.music.load('sounds/Sewer.mp3')
-vol = 0.05
-pygame.mixer.music.set_volume(vol)
-MAP_WIDTH, MAP_HEIGHT = len(level[0]) * tile_width, len(level) * tile_height
-WIDTH, HEIGHT = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)
-# WIDTH, HEIGHT = 500, 500
-# screen = pygame.display.set_mode((WIDTH, HEIGHT))
-screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
-
-scope = Scope(0, 0)
-gun = Gun(player.pos_x, player.pos_y)
-model = Model(200, 200)
-enemy_gun = EnemyGun(model.pos_x, model.pos_y)
-enemy_gun.move(200, 200)
-bullet_counter = 50
-
-CONST = 0.7
 
 
 def way_to_target(target_pos, bullet_pos):
@@ -388,6 +396,20 @@ def way_to_target(target_pos, bullet_pos):
     new_bullet_vector = bullet_vector + direction_vector * step_distance
 
     return new_bullet_vector.x, new_bullet_vector.y
+
+
+def way_to_player(target_pos, bullet_pos):
+    target_vector = pygame.math.Vector2(*target_pos)
+    enemy_vector = pygame.math.Vector2(*bullet_pos)
+
+    distance = enemy_vector.distance_to(target_vector)
+
+    direction_vector = (target_vector - enemy_vector) / distance
+
+    step_distance = distance * CONST1
+    new_enemy_vector = enemy_vector + direction_vector * step_distance
+
+    return new_enemy_vector.x, new_enemy_vector.y
 
 
 font_name = pygame.font.match_font('arial')
@@ -461,6 +483,16 @@ def game_over():
     game_over_menu.mainloop(screen)
 
 
+def win():
+    win_menu = Menu(HEIGHT, WIDTH, theme=my_theme, title='')
+    win_menu.add_label("You win!")
+    win_menu.add_label(f"Your score: {score}")
+    win_menu.add_button('Next level', start_the_game)
+    win_menu.add_button('Menu', menu)
+    win_menu.add_button('Quit', pygame_menu.events.EXIT)
+    win_menu.mainloop(screen)
+
+
 def open_instruction():
     instruction_menu = Menu(HEIGHT, WIDTH, theme=my_theme, title='Control')
     instruction_menu.add_label("wasd  movement")
@@ -474,23 +506,41 @@ def open_instruction():
     instruction_menu.mainloop(screen)
 
 
-total_level_width = len(level[0]) * tile_width  # Высчитываем фактическую ширину уровня
-total_level_height = len(level) * tile_height  # высоту
-
-camera = Camera(camera_configure, total_level_width, total_level_height)
-x = WIDTH - 36 * 5 - 5
-y = 15
-for i in range(5):
-    Heart(x, y, i)
-    x += 36
-
-shoot_sound = pygame.mixer.Sound('sounds/shoot.wav')
-cooldown_sound = pygame.mixer.Sound('sounds/cooldown.wav')
-shoot_sound.set_volume(0.5)
-
-
 def start_the_game():
-    global bullet_counter, moving_left, moving_right, animCounter, vol
+    global bullet_counter, moving_left, moving_right, animCounter, vol, game_over_menu, tiles_group, walls_group, \
+        player_group, group, enemies_group, hearts_group, enemy_guns, scope_group, all_sprites1, all_sprites, \
+        enemy_bullets_group, bullets_group, scope, player, MAP_WIDTH, MAP_HEIGHT
+
+    all_sprites = pygame.sprite.Group()
+    tiles_group = pygame.sprite.Group()
+    walls_group = pygame.sprite.Group()
+    player_group = pygame.sprite.Group()
+    group = pygame.sprite.Group()
+    bullets_group = pygame.sprite.Group()
+    enemy_bullets_group = pygame.sprite.Group()
+    enemies_group = pygame.sprite.Group()
+    hearts_group = pygame.sprite.Group()
+    all_sprites1 = pygame.sprite.Group()
+    scope_group = pygame.sprite.Group()
+    enemy_guns = pygame.sprite.Group()
+
+    level = load_level('levels/' + levels[level_counter % len(levels)])
+
+    MAP_WIDTH, MAP_HEIGHT = len(level[0]) * tile_width, len(level) * tile_height
+
+    camera = Camera(camera_configure, MAP_WIDTH, MAP_HEIGHT)
+
+    player, level_x, level_y = generate_level(level)
+    scope = Scope(*pygame.mouse.get_pos())
+    gun = Gun(player.pos_x, player.pos_y)
+    bullet_counter = 50
+
+    x = WIDTH - 36 * 5 - 5
+    y = 15
+    for i in range(5):
+        Heart(x, y, i)
+        x += 36
+
     pygame.mixer.music.play(-1)
     running = True
     pygame.mouse.set_visible(False)
@@ -612,7 +662,14 @@ def start_the_game():
             else:
                 follower = way_to_target((bullet.pos_x, bullet.pos_y), bullet.end_pos)
                 bullet.move(*follower)
-
+        # for enemy in enemies_group:
+        #     if abs(enemy.pos_x - player.pos_x) <= 10 and abs(enemy.pos_y - player.pos_y) <= 10:
+        #         pass
+        #     else:
+        #         follower = way_to_player((enemy.pos_x, enemy.pos_y), (player.pos_x, player.pos_y))
+        #         enemy.move(*follower)
+        if not enemies_group:
+            win()
         all_sprites.update()
         all_sprites1.update()
         camera.update(player)
