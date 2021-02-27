@@ -83,6 +83,7 @@ enemies_group = pygame.sprite.Group()
 hearts_group = pygame.sprite.Group()
 all_sprites1 = pygame.sprite.Group()
 scope_group = pygame.sprite.Group()
+enemy_guns = pygame.sprite.Group()
 
 
 class Heart(pygame.sprite.Sprite):
@@ -235,6 +236,8 @@ class EnemyBullet(pygame.sprite.Sprite):
         self.image.set_colorkey(self.image.get_at((0, 0)))
 
 
+
+
 class Model(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(enemies_group, all_sprites)
@@ -249,6 +252,32 @@ class Model(pygame.sprite.Sprite):
     def update(self):
         if self.count > 10:
             self.kill()
+
+
+class EnemyGun(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(enemy_guns, all_sprites)
+        self.pos_x, self.pos_y = x, y
+        self.image = guns_images['gun4']
+        self.width, self.height = self.image.get_width(), self.image.get_height()
+        self.rect = self.image.get_rect().move(self.pos_x, self.pos_y)
+        self.image.set_colorkey(self.image.get_at((0, 0)))
+
+    def move(self, x, y):
+        self.pos_x, self.pos_y = x, y
+        self.rect.topleft = x + tile_width // 2, y + tile_height // 2 + 5
+
+    def update(self):
+        try:
+            tg = ((player.pos_y - self.pos_y) / (player.pos_x - self.pos_x))
+        except ZeroDivisionError:
+            tg = 0
+        rad = atan(tg)
+        deg = degrees(rad)
+        if self.pos_x > player.pos_x:
+            self.image = pygame.transform.flip(pygame.transform.rotate(guns_images['gun4'], deg), True, False)
+        else:
+            self.image = pygame.transform.rotate(guns_images['gun4'], -deg)
 
 
 def load_level(filename):
@@ -292,7 +321,7 @@ player, level_x, level_y = generate_level(level)
 pygame.init()
 pygame.display.set_caption('The scrap knight!')
 pygame.mixer.music.load('sounds/Sewer.mp3')
-vol = 0.01
+vol = 0.05
 pygame.mixer.music.set_volume(vol)
 MAP_WIDTH, MAP_HEIGHT = len(level[0]) * tile_width, len(level) * tile_height
 WIDTH, HEIGHT = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)
@@ -304,6 +333,8 @@ screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
 scope = Scope(0, 0)
 gun = Gun(player.pos_x, player.pos_y)
 model = Model(200, 200)
+enemy_gun = EnemyGun(model.pos_x, model.pos_y)
+enemy_gun.move(200, 200)
 bullet_counter = 50
 
 CONST = 0.7
@@ -417,6 +448,9 @@ for i in range(5):
     Heart(x, y, i)
     x += 36
 
+shoot_sound = pygame.mixer.Sound('sounds/выстрел.mp3')
+shoot_sound.set_volume(0.5)
+
 
 def start_the_game():
     global bullet_counter, moving_left, moving_right, animCounter, vol
@@ -496,6 +530,7 @@ def start_the_game():
                             Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
                         else:
                             Bullet(player.pos_x, player.pos_y, (scope.pos_x, scope.pos_y))
+                        shoot_sound.play()
                         bullet_counter -= 1
 
         keys = pygame.key.get_pressed()
