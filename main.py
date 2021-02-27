@@ -286,7 +286,7 @@ def generate_level(level):
 player, level_x, level_y = generate_level(level)
 pygame.init()
 pygame.display.set_caption('The scrap knigth!')
-pygame.mixer.music.load('sounds/Candy.mp3')
+pygame.mixer.music.load('sounds/Sewer.mp3')
 vol = 1.0
 pygame.mixer.music.set_volume(vol)
 MAP_WIDTH, MAP_HEIGHT = len(level[0]) * tile_width, len(level) * tile_height
