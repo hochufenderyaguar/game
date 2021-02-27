@@ -300,7 +300,6 @@ WIDTH, HEIGHT = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetric
 # screen = pygame.display.set_mode((WIDTH, HEIGHT))
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.mouse.set_visible(False)
 
 scope = Scope(0, 0)
 gun = Gun(player.pos_x, player.pos_y)
@@ -360,14 +359,27 @@ def camera_configure(camera, target_rect):
     return pygame.Rect(left, top, w, h)
 
 
+font = pygame_menu.font.FONT_8BIT
+my_theme = Theme(widget_font=font, title_bar_style=pygame_menu.widgets.MENUBAR_STYLE_SIMPLE,
+                 background_color=(228, 230, 246),
+                 scrollbar_shadow=True,
+                 scrollbar_slider_color=(150, 200, 230),
+                 scrollbar_slider_pad=2,
+                 selection_color=(100, 62, 132),
+                 title_background_color=(62, 149, 195),
+                 title_font_color=(228, 230, 246),
+                 widget_font_color=(61, 170, 220))
+
+
 def press_continue_button():
     global pause
     pause.disable()
+    pygame.mouse.set_visible(False)
 
 
 def put_on_pause():
     global pause
-    pause = Menu(HEIGHT, WIDTH, 'pause', theme=pygame_menu.themes.THEME_BLUE)
+    pause = Menu(HEIGHT, WIDTH, 'Pause', theme=my_theme)
     pause.add_button('Continue', press_continue_button)
     pause.add_button('Quit', pygame_menu.events.EXIT)
     pause.mainloop(screen)
@@ -375,13 +387,24 @@ def put_on_pause():
 
 
 def game_over():
-    font = pygame_menu.font.FONT_8BIT
-    my_theme = Theme(widget_font=font)
     game_over_menu = Menu(HEIGHT, WIDTH, theme=my_theme, title='')
     game_over_menu.add_label("Game over")
     game_over_menu.add_button('Menu', pygame_menu.events.EXIT)
     game_over_menu.add_button('Quit', pygame_menu.events.EXIT)
     game_over_menu.mainloop(screen)
+
+
+def open_instruction():
+    instruction_menu = Menu(HEIGHT, WIDTH, theme=my_theme, title='Control')
+    instruction_menu.add_label("wasd  movement")
+    instruction_menu.add_label("shoot  lkm")
+    instruction_menu.add_label("sound  up/down")
+    instruction_menu.add_label("p  pause")
+    instruction_menu.add_label("0  music stop")
+    instruction_menu.add_label("9  music play")
+    instruction_menu.add_button('Menu', menu)
+    instruction_menu.add_button('Quit', pygame_menu.events.EXIT)
+    instruction_menu.mainloop(screen)
 
 
 total_level_width = len(level[0]) * tile_width  # Высчитываем фактическую ширину уровня
@@ -394,130 +417,140 @@ for i in range(5):
     Heart(x, y, i)
     x += 36
 
-pygame.mixer.music.play(-1)
-running = True
-while running:
-    if MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
-            and MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
-        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y
-    elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
-            and player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
-        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y - (
-                player.pos_y - (MAP_HEIGHT - HEIGHT // 2))
-    elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2 \
-            and player.pos_x >= MAP_WIDTH - WIDTH // 2:
-        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x - (
-                player.pos_x - (MAP_WIDTH - WIDTH // 2)), player.pos_y - HEIGHT // 2 + scope.pos_y
-    elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2 and player.pos_x >= MAP_WIDTH - WIDTH // 2:
-        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x - (
-                player.pos_x - (MAP_WIDTH - WIDTH // 2)), player.pos_y - HEIGHT // 2 + scope.pos_y - (
-                                   player.pos_y - (MAP_HEIGHT - HEIGHT // 2))
-    elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
-        scope.x, scope.y = scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y
-    elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
-        scope.x, scope.y = scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y - (
-                player.pos_y - (MAP_HEIGHT - HEIGHT // 2))
-    elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2:
-        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x, scope.pos_y
-    elif player.pos_x >= MAP_WIDTH - WIDTH // 2:
-        scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x - (
-                player.pos_x - (MAP_WIDTH - WIDTH // 2)), scope.pos_y
-    else:
-        scope.x, scope.y = scope.pos_x, scope.pos_y
-    animCounter += 1
-    if animCounter == 48:
-        animCounter = 0
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+
+def start_the_game():
+    global bullet_counter, moving_left, moving_right, animCounter, vol
+    pygame.mixer.music.play(-1)
+    running = True
+    pygame.mouse.set_visible(False)
+    while running:
+        if MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
+                and MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
+            scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y
+        elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
+                and player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
+            scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y - (
+                    player.pos_y - (MAP_HEIGHT - HEIGHT // 2))
+        elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2 \
+                and player.pos_x >= MAP_WIDTH - WIDTH // 2:
+            scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x - (
+                    player.pos_x - (MAP_WIDTH - WIDTH // 2)), player.pos_y - HEIGHT // 2 + scope.pos_y
+        elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2 and player.pos_x >= MAP_WIDTH - WIDTH // 2:
+            scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x - (
+                    player.pos_x - (MAP_WIDTH - WIDTH // 2)), player.pos_y - HEIGHT // 2 + scope.pos_y - (
+                                       player.pos_y - (MAP_HEIGHT - HEIGHT // 2))
+        elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
+            scope.x, scope.y = scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y
+        elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
+            scope.x, scope.y = scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y - (
+                    player.pos_y - (MAP_HEIGHT - HEIGHT // 2))
+        elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2:
+            scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x, scope.pos_y
+        elif player.pos_x >= MAP_WIDTH - WIDTH // 2:
+            scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x - (
+                    player.pos_x - (MAP_WIDTH - WIDTH // 2)), scope.pos_y
+        else:
+            scope.x, scope.y = scope.pos_x, scope.pos_y
+        animCounter += 1
+        if animCounter == 48:
+            animCounter = 0
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    player.hp -= 1
+                elif event.key == pygame.K_p:
+                    put_on_pause()
+            if event.type == pygame.MOUSEMOTION:
+                x, y = event.pos
+                if x + scope.width > WIDTH:
+                    x = WIDTH - scope.width
+                if y + scope.height > HEIGHT:
+                    y = HEIGHT - scope.height
+                scope.move(x, y)
+            else:
+                scope.move(scope.pos_x, scope.pos_y)
+
+            if bullet_counter > 0:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == pygame.BUTTON_LEFT:
+                        if MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
+                                and MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
+                            Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
+                        elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
+                                and player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
+                            Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
+                        elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2 \
+                                and player.pos_x >= MAP_WIDTH - WIDTH // 2:
+                            Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
+                        elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2 and player.pos_x >= MAP_WIDTH - WIDTH // 2:
+                            Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
+                        elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
+                            Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
+                        elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
+                            Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
+                        elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2:
+                            Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
+                        elif player.pos_x >= MAP_WIDTH - WIDTH // 2:
+                            Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
+                        else:
+                            Bullet(player.pos_x, player.pos_y, (scope.pos_x, scope.pos_y))
+                        bullet_counter -= 1
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_0]:
+            pygame.mixer.music.stop()
+        if keys[pygame.K_9]:
+            pygame.mixer.music.play()
+        if keys[pygame.K_UP]:
+            vol += 0.01
+            pygame.mixer.music.set_volume(vol)
+        if keys[pygame.K_DOWN]:
+            vol -= 0.01
+            pygame.mixer.music.set_volume(vol)
+        if keys[pygame.K_ESCAPE]:
+            pygame.mixer.music.stop()
             running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                player.hp -= 1
-            elif event.key == pygame.K_p:
-                put_on_pause()
-        if event.type == pygame.MOUSEMOTION:
-            x, y = event.pos
-            if x + scope.width > WIDTH:
-                x = WIDTH - scope.width
-            if y + scope.height > HEIGHT:
-                y = HEIGHT - scope.height
-            scope.move(x, y)
-        else:
-            scope.move(scope.pos_x, scope.pos_y)
+        if keys[pygame.K_w]:
+            player.move(0, -5)
+            moving_right = True
+        if keys[pygame.K_s]:
+            player.move(0, 5)
+            moving_right = True
+        if keys[pygame.K_d]:
+            player.move(5, 0)
+            moving_right = True
+        if keys[pygame.K_a]:
+            player.move(-5, 0)
+            moving_left = True
+            moving_right = False
+        if not (keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]):
+            moving_right = moving_left = False
 
-        if bullet_counter > 0:
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == pygame.BUTTON_LEFT:
-                    if MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
-                            and MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
-                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
-                    elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
-                            and player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
-                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
-                    elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2 \
-                            and player.pos_x >= MAP_WIDTH - WIDTH // 2:
-                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
-                    elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2 and player.pos_x >= MAP_WIDTH - WIDTH // 2:
-                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
-                    elif MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
-                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
-                    elif player.pos_y >= MAP_HEIGHT - HEIGHT // 2:
-                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
-                    elif MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2:
-                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
-                    elif player.pos_x >= MAP_WIDTH - WIDTH // 2:
-                        Bullet(player.pos_x, player.pos_y, (scope.x, scope.y))
-                    else:
-                        Bullet(player.pos_x, player.pos_y, (scope.pos_x, scope.pos_y))
-                    bullet_counter -= 1
+        for bullet in bullets_group:
+            if abs(bullet.pos_x - bullet.end_pos[0]) <= 5 and abs(bullet.pos_y - bullet.end_pos[1]) <= 5:
+                bullet.kill()
+            else:
+                follower = way_to_target((bullet.pos_x, bullet.pos_y), bullet.end_pos)
+                bullet.move(*follower)
 
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_0]:
-        pygame.mixer.music.stop()
-    if keys[pygame.K_9]:
-        pygame.mixer.music.play()
-    if keys[pygame.K_UP]:
-        vol += 0.01
-        pygame.mixer.music.set_volume(vol)
-    if keys[pygame.K_DOWN]:
-        vol -= 0.01
-        pygame.mixer.music.set_volume(vol)
-    if keys[pygame.K_ESCAPE]:
-        pygame.mixer.music.stop()
-        running = False
-    if keys[pygame.K_w]:
-        player.move(0, -5)
-        moving_right = True
-    if keys[pygame.K_s]:
-        player.move(0, 5)
-        moving_right = True
-    if keys[pygame.K_d]:
-        player.move(5, 0)
-        moving_right = True
-    if keys[pygame.K_a]:
-        player.move(-5, 0)
-        moving_left = True
-        moving_right = False
-    if not (keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]):
-        moving_right = moving_left = False
+        all_sprites.update()
+        all_sprites1.update()
+        camera.update(player)
+        for sprite in all_sprites:
+            screen.blit(sprite.image, camera.apply(sprite))
+        gun.move(player.pos_x, player.pos_y)
+        draw_text(screen, str(bullet_counter), 25, 15, 3)
+        all_sprites1.draw(screen_2)
+        screen.blit(screen_2, (0, 0))
+        pygame.display.flip()
+        clock.tick(FPS)
 
-    for bullet in bullets_group:
-        if abs(bullet.pos_x - bullet.end_pos[0]) <= 5 and abs(bullet.pos_y - bullet.end_pos[1]) <= 5:
-            bullet.kill()
-        else:
-            follower = way_to_target((bullet.pos_x, bullet.pos_y), bullet.end_pos)
-            bullet.move(*follower)
 
-    all_sprites.update()
-    all_sprites1.update()
-    camera.update(player)
-    for sprite in all_sprites:
-        screen.blit(sprite.image, camera.apply(sprite))
-    gun.move(player.pos_x, player.pos_y)
-    draw_text(screen, str(bullet_counter), 25, 15, 3)
-    all_sprites1.draw(screen_2)
-    screen.blit(screen_2, (0, 0))
-    pygame.display.flip()
-    clock.tick(FPS)
-
+menu = Menu(HEIGHT, WIDTH, 'The scrap knight!', theme=my_theme)
+menu.add_button('Play', start_the_game)
+menu.add_button('Quit', pygame_menu.events.EXIT)
+menu.add_button('control', open_instruction)
+menu.mainloop(screen)
 pygame.quit()
