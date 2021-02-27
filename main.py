@@ -125,10 +125,6 @@ class Hero(pygame.sprite.Sprite):
     def move(self, x, y):
         self.rect.x += x
         self.rect.y += y
-        if pygame.sprite.spritecollide(self, enemy_bullets_group, False):
-            self.hp -= 1
-            if self.hp < 0:
-                game_over()
         if pygame.sprite.spritecollide(self, walls_group, False) or pygame.sprite.spritecollide(self, enemies_group,
                                                                                                 False):
             self.rect.x -= x
@@ -246,10 +242,11 @@ class EnemyBullet(pygame.sprite.Sprite):
         self.rect.y = self.pos_y
         if pygame.sprite.spritecollide(self, walls_group, False):
             self.kill()
-        enemy = pygame.sprite.spritecollideany(self, enemies_group)
-        if enemy:
+        if pygame.sprite.spritecollideany(self, player_group):
+            player.hp -= 1
+            if player.hp < 0:
+                game_over()
             self.kill()
-            enemy.count += 1
         self.rect = self.image.get_rect().move(round(x), round(y))
 
     def bullet_update(self):
@@ -459,7 +456,7 @@ def put_on_pause():
 def game_over():
     game_over_menu = Menu(HEIGHT, WIDTH, theme=my_theme, title='')
     game_over_menu.add_label("Game over")
-    game_over_menu.add_button('Menu', pygame_menu.events.EXIT)
+    game_over_menu.add_button('Menu', menu)
     game_over_menu.add_button('Quit', pygame_menu.events.EXIT)
     game_over_menu.mainloop(screen)
 
