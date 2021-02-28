@@ -176,7 +176,9 @@ class Gun(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(group, all_sprites)
         self.pos_x, self.pos_y = x, y
-        self.image = guns_images['gun1']
+        self.gun_num = 0
+        self.gun_lst = ['gun1', 'gun2', 'gun3', 'gun4', 'gun5', 'shovel', 'pickaxe', 'sword']
+        self.image = guns_images[self.gun_lst[self.gun_num]]
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = self.image.get_rect().move(x, y)
         self.image.set_colorkey(self.image.get_at((0, 0)))
@@ -198,9 +200,13 @@ class Gun(pygame.sprite.Sprite):
         if self.pos_x > scope.x:
             # if 0 > deg > -90:
             #     self.rect.topleft = x + tile_width // 2 - ((90 + deg) * (15 // 90)), y + tile_height // 2 + 5
-            self.image = pygame.transform.flip(pygame.transform.rotate(guns_images['gun1'], deg), True, False)
+            self.image = pygame.transform.flip(pygame.transform.rotate(guns_images[self.gun_lst[self.gun_num]], deg), True, False)
         else:
-            self.image = pygame.transform.rotate(guns_images['gun1'], -deg)
+            self.image = pygame.transform.rotate(guns_images[self.gun_lst[self.gun_num]], -deg)
+
+    def change(self):
+        self.gun_num += 1
+        self.gun_num %= 8
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -516,6 +522,7 @@ def open_instruction():
     instruction_menu.add_label("wasd  movement")
     instruction_menu.add_label("shoot  lkm")
     instruction_menu.add_label("sound  up/down")
+    instruction_menu.add_label("change gun  right")
     instruction_menu.add_label("p  pause")
     instruction_menu.add_label("0  music stop")
     instruction_menu.add_label("9  music play")
@@ -601,8 +608,8 @@ def start_the_game():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    player.hp -= 1
+                if event.key == pygame.K_RIGHT:
+                    gun.change()
                 elif event.key == pygame.K_p:
                     put_on_pause()
             if event.type == pygame.MOUSEMOTION:
