@@ -75,7 +75,7 @@ moving_right = moving_left = False
 full_health = pygame.image.load('sprites/full_health.png')
 zero_health = pygame.image.load('sprites/zero_health.png')
 levels = listdir('levels')
-level_counter = 0
+level_counter = -1
 score = 0
 
 shoot_sound = pygame.mixer.Sound('sounds/shoot.wav')
@@ -91,7 +91,11 @@ screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
 
 CONST = 0.7
-CONST1 = 0.005
+CONST1 = 0.99
+
+enemy_dict = {}
+
+check_game_over = False
 
 
 class Heart(pygame.sprite.Sprite):
@@ -291,19 +295,22 @@ class Enemy(pygame.sprite.Sprite):
         self.image.set_colorkey(self.image.get_at((0, 0)))
         self.count = 0
         self.time = 1
+        self.check_kill = False
 
     def update(self):
         global score
         if self.count > 10:
+            self.check_kill = True
             self.kill()
             score += 100
 
     def move(self, x, y):
-        self.pos_x = round(x)
-        self.pos_y = round(y)
-        self.rect.x = self.pos_x
-        self.rect.y = self.pos_y
-        self.rect = self.image.get_rect().move(round(x), round(y))
+        if not pygame.sprite.spritecollide(self, walls_group, False):
+            self.pos_x = round(x)
+            self.pos_y = round(y)
+            self.rect.x = self.pos_x
+            self.rect.y = self.pos_y
+            self.rect = self.image.get_rect().move(round(x), round(y))
 
 
 class EnemyGun(pygame.sprite.Sprite):
@@ -318,13 +325,13 @@ class EnemyGun(pygame.sprite.Sprite):
         self.image.set_colorkey(self.image.get_at((0, 0)))
         self.time = 0
 
-    def move(self, x, y):
-        self.pos_x, self.pos_y = x, y
-        self.rect.topleft = x + tile_width // 2, y + tile_height // 2 + 5
-
     def update(self):
+        if enemy_dict[self].check_kill:
+            self.kill()
+        self.pos_x, self.pos_y = enemy_dict[self].pos_x, enemy_dict[self].pos_y
+        self.rect.topleft = self.pos_x + tile_width // 2, self.pos_y + tile_height // 2 + 5
         self.time += 1
-        self.time = self.time % 40
+        self.time = self.time % 70
         try:
             tg = ((player.pos_y - self.pos_y) / (player.pos_x - self.pos_x))
         except ZeroDivisionError:
@@ -359,6 +366,7 @@ def load_level(filename):
 def generate_level(level):
     new_player, x, y = None, None, None
     player_x, player_y = None, None
+    enemy_lst = []
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '#':
@@ -378,8 +386,11 @@ def generate_level(level):
                 Tile('walls', x, y, walls_group)
             elif level[y][x] == 'e':
                 Tile('tile', x, y, tiles_group)
-                Enemy(x * tile_width, y * tile_height)
-                EnemyGun(x * tile_width, y * tile_height)
+                enemy_lst.append((x * tile_width, y * tile_height))
+    for x, y in enemy_lst:
+        enemy = Enemy(x, y)
+        gun = EnemyGun(x, y)
+        enemy_dict[gun] = enemy
     new_player = Hero(player_x, player_y)
     return new_player, x, y
 
@@ -398,9 +409,9 @@ def way_to_target(target_pos, bullet_pos):
     return new_bullet_vector.x, new_bullet_vector.y
 
 
-def way_to_player(target_pos, bullet_pos):
+def way_to_player(target_pos, enemy_pos):
     target_vector = pygame.math.Vector2(*target_pos)
-    enemy_vector = pygame.math.Vector2(*bullet_pos)
+    enemy_vector = pygame.math.Vector2(*enemy_pos)
 
     distance = enemy_vector.distance_to(target_vector)
 
@@ -440,10 +451,14 @@ def camera_configure(camera, target_rect):
     _, _, w, h = camera
     left, top = -left + WIDTH / 2, -top + HEIGHT / 2
 
-    left = min(0, left)  # Не движемся дальше левой границы
-    left = max(-(camera.width - WIDTH), left)  # Не движемся дальше правой границы
-    top = max(-(camera.height - HEIGHT), top)  # Не движемся дальше нижней границы
-    top = min(0, top)  # Не движемся дальше верхней границы
+    # не движемся дальше левой границы
+    left = min(0, left)
+    # не движемся дальше правой границы
+    left = max(-(camera.width - WIDTH), left)
+    # не движемся дальше нижней границы
+    top = max(-(camera.height - HEIGHT), top)
+    # не движемся дальше верхней границы
+    top = min(0, top)
 
     return pygame.Rect(left, top, w, h)
 
@@ -476,8 +491,11 @@ def put_on_pause():
 
 
 def game_over():
+    global check_game_over
+    check_game_over = True
     game_over_menu = Menu(HEIGHT, WIDTH, theme=my_theme, title='')
     game_over_menu.add_label("Game over")
+    game_over_menu.add_label(f"Your score: {score}")
     game_over_menu.add_button('Menu', menu)
     game_over_menu.add_button('Quit', pygame_menu.events.EXIT)
     game_over_menu.mainloop(screen)
@@ -509,8 +527,12 @@ def open_instruction():
 def start_the_game():
     global bullet_counter, moving_left, moving_right, animCounter, vol, game_over_menu, tiles_group, walls_group, \
         player_group, group, enemies_group, hearts_group, enemy_guns, scope_group, all_sprites1, all_sprites, \
-        enemy_bullets_group, bullets_group, scope, player, MAP_WIDTH, MAP_HEIGHT
+        enemy_bullets_group, bullets_group, scope, player, MAP_WIDTH, MAP_HEIGHT, level_counter, score
 
+    if check_game_over:
+        score, level_counter = 0, -1
+
+    level_counter += 1
     all_sprites = pygame.sprite.Group()
     tiles_group = pygame.sprite.Group()
     walls_group = pygame.sprite.Group()
@@ -533,7 +555,7 @@ def start_the_game():
     player, level_x, level_y = generate_level(level)
     scope = Scope(*pygame.mouse.get_pos())
     gun = Gun(player.pos_x, player.pos_y)
-    bullet_counter = 50
+    bullet_counter = 100
 
     x = WIDTH - 36 * 5 - 5
     y = 15
@@ -662,12 +684,12 @@ def start_the_game():
             else:
                 follower = way_to_target((bullet.pos_x, bullet.pos_y), bullet.end_pos)
                 bullet.move(*follower)
-        # for enemy in enemies_group:
-        #     if abs(enemy.pos_x - player.pos_x) <= 10 and abs(enemy.pos_y - player.pos_y) <= 10:
-        #         pass
-        #     else:
-        #         follower = way_to_player((enemy.pos_x, enemy.pos_y), (player.pos_x, player.pos_y))
-        #         enemy.move(*follower)
+        for enemy in enemies_group:
+            if abs(enemy.pos_x - player.pos_x) <= 10 and abs(enemy.pos_y - player.pos_y) <= 10:
+                pass
+            else:
+                follower = way_to_player((enemy.pos_x, enemy.pos_y), (player.pos_x, player.pos_y))
+                enemy.move(*follower)
         if not enemies_group:
             win()
         all_sprites.update()
