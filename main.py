@@ -93,6 +93,7 @@ levels = listdir('levels')
 level_counter = -1
 # общий счет
 score = 0
+patrons = [100 for _ in range(8)]
 
 # загрузка звука выстрела
 shoot_sound = pygame.mixer.Sound('sounds/shoot.wav')
@@ -201,7 +202,7 @@ class Gun(pygame.sprite.Sprite):
         self.gun_num = 0
         self.gun_lst = ['gun1', 'gun2', 'gun3', 'gun4', 'gun5', 'shovel', 'pickaxe', 'sword']
         # колво патронов у каждого оружия
-        self.patrons_lst = [100 for _ in range(8)]
+        self.patrons_lst = patrons
         self.bullet_counter = self.patrons_lst[0]
         self.image = guns_images[self.gun_lst[self.gun_num]]
         self.width, self.height = self.image.get_width(), self.image.get_height()
@@ -452,6 +453,7 @@ class EnemyGun(pygame.sprite.Sprite):
             shoot_sound.play()
 
 
+# загрузка уровня
 def load_level(filename):
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
