@@ -155,6 +155,8 @@ class Hero(pygame.sprite.Sprite):
         self.pos_x, self.pos_y = self.rect.x, self.rect.y
 
     def update(self):
+        if self.hp < 0:
+            game_over()
         if moving_right:
             self.image = hero_animation['move_right'][animCounter // 8]
         elif moving_left:
@@ -187,7 +189,9 @@ class Gun(pygame.sprite.Sprite):
         self.pos_x, self.pos_y = x, y
         self.gun_num = 0
         self.gun_lst = ['gun1', 'gun2', 'gun3', 'gun4', 'gun5', 'shovel', 'pickaxe', 'sword']
-        self.patrons_lst = [0] * 8
+        # колво патронов у каждого оружия
+        self.patrons_lst = [100 for _ in range(8)]
+        self.bullet_counter = self.patrons_lst[0]
         self.image = guns_images[self.gun_lst[self.gun_num]]
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = self.image.get_rect().move(x, y)
@@ -221,6 +225,7 @@ class Gun(pygame.sprite.Sprite):
     def change(self):
         self.gun_num += 1
         self.gun_num %= 8
+        self.bullet_counter = self.patrons_lst[self.gun_num]
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -367,12 +372,16 @@ class Rat(pygame.sprite.Sprite):
         self.rect.x = self.pos_x
         self.rect.y = self.pos_y
         self.rect = self.image.get_rect().move(self.pos_x, self.pos_y)
-        if pygame.sprite.spritecollide(self, walls_group, False):
+        if pygame.sprite.spritecollide(self, walls_group, False) or pygame.sprite.spritecollide(self, player_group,
+                                                                                                False):
             self.pos_x = x1
             self.pos_y = y1
             self.rect.x = self.pos_x
             self.rect.y = self.pos_y
             self.rect = self.image.get_rect().move(self.pos_x, self.pos_y)
+        if pygame.sprite.spritecollideany(self, player_group):
+            player.hp -= 1
+            self.kill()
 
 
 class EnemyGun(pygame.sprite.Sprite):
@@ -392,9 +401,10 @@ class EnemyGun(pygame.sprite.Sprite):
             self.kill()
         x1, y1 = self.pos_x, self.pos_y
         self.pos_x, self.pos_y = enemy_dict[self].pos_x, enemy_dict[self].pos_y
+        self.rect.topleft = self.pos_x + tile_width // 2, self.pos_y + tile_height // 2 + 5
         if pygame.sprite.spritecollide(self, walls_group, False):
             self.pos_x, self.pos_y = x1, y1
-        self.rect.topleft = self.pos_x + tile_width // 2, self.pos_y + tile_height // 2 + 5
+            self.rect.topleft = self.pos_x + tile_width // 2, self.pos_y + tile_height // 2 + 5
         self.time += 1
         self.time = self.time % 70
         try:
@@ -647,7 +657,6 @@ def start_the_game():
     player, level_x, level_y = generate_level(level)
     scope = Scope(*pygame.mouse.get_pos())
     gun = Gun(player.pos_x, player.pos_y)
-    bullet_counter = 100
 
     x = WIDTH - 36 * 5 - 5
     y = 15
@@ -707,7 +716,7 @@ def start_the_game():
             else:
                 scope.move(scope.pos_x, scope.pos_y)
 
-            if bullet_counter > 0:
+            if gun.bullet_counter > 0:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == pygame.BUTTON_LEFT:
                         if MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
@@ -732,7 +741,8 @@ def start_the_game():
                         else:
                             Bullet(player.pos_x, player.pos_y, (scope.pos_x, scope.pos_y))
                         shoot_sound.play()
-                        bullet_counter -= 1
+                        gun.bullet_counter -= 1
+                        gun.patrons_lst[gun.gun_num] -= 1
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_0]:
@@ -793,7 +803,7 @@ def start_the_game():
         for sprite in all_sprites:
             screen.blit(sprite.image, camera.apply(sprite))
         gun.move(player.pos_x, player.pos_y)
-        draw_text(screen, str(bullet_counter), 25, 15, 3)
+        draw_text(screen, str(gun.bullet_counter), 25, 15, 3)
         all_sprites1.draw(screen_2)
         screen.blit(screen_2, (0, 0))
         pygame.display.flip()
