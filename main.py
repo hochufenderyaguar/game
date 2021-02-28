@@ -113,6 +113,7 @@ screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
 CONST = 0.7
 CONST1 = 0.99
 
+# словарь, для того чтобы запоминался враг и оружие, которое ему принадлежит
 enemy_dict = {}
 
 check_game_over = False
@@ -320,6 +321,7 @@ class EnemyBullet(pygame.sprite.Sprite):
             self.kill()
         self.rect = self.image.get_rect().move(round(x), round(y))
 
+    # поворачивает пулю под углом к игроку
     def bullet_update(self):
         try:
             tg = ((self.end_pos[1] - self.pos_y) / (self.end_pos[0] - self.pos_x))
@@ -344,8 +346,11 @@ class Enemy(pygame.sprite.Sprite):
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = pygame.Rect(0, 0, 28, 28).move(x, y)
         self.image.set_colorkey((255, 0, 255))
+        # счетчик попаданий в врага
         self.count = 0
+        # время, чтобы враг стрелял с задержкой
         self.time = 1
+        # проверка, чтобы вместе с врагом при его убийстве удалилось и его оружие
         self.check_kill = False
 
     def update(self):
@@ -379,12 +384,10 @@ class Rat(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(x, y)
         self.image.set_colorkey((255, 0, 255))
         self.count = 0
-        self.check_kill = False
 
     def update(self):
         global score
         if self.count > 10:
-            self.check_kill = True
             self.kill()
             score += 100
 
@@ -402,6 +405,7 @@ class Rat(pygame.sprite.Sprite):
             self.rect.x = self.pos_x
             self.rect.y = self.pos_y
             self.rect = self.image.get_rect().move(self.pos_x, self.pos_y)
+        # если ирок врезался в крысу, у него отнимается жизнь, а крыса умирает
         if pygame.sprite.spritecollideany(self, player_group):
             player.hp -= 1
             self.kill()
@@ -525,6 +529,7 @@ def generate_level(level):
     return new_player, x, y
 
 
+# расчитывает координаты, чтобы дойти до цели по диагонали
 def way_to_target(target_pos, bullet_pos):
     target_vector = pygame.math.Vector2(*target_pos)
     bullet_vector = pygame.math.Vector2(*bullet_pos)
@@ -673,6 +678,7 @@ def start_the_game():
         score, level_counter = 0, -1
 
     level_counter += 1
+    # группы спрайтов
     all_sprites = pygame.sprite.Group()
     tiles_group = pygame.sprite.Group()
     walls_group = pygame.sprite.Group()
@@ -698,12 +704,14 @@ def start_the_game():
     scope = Scope(*pygame.mouse.get_pos())
     gun = Gun(player.pos_x, player.pos_y)
 
+    # жизни героя
     x = WIDTH - 36 * 5 - 5
     y = 15
     for i in range(5):
         Heart(x, y, i)
         x += 36
 
+    # включить музыку
     pygame.mixer.music.play(-1)
     running = True
     pygame.mouse.set_visible(False)
@@ -815,6 +823,7 @@ def start_the_game():
         if not (keys[pygame.K_w] or keys[pygame.K_a] or keys[pygame.K_s] or keys[pygame.K_d]):
             moving_right = moving_left = False
 
+        # движение пулек
         for bullet in bullets_group:
             if abs(bullet.pos_x - bullet.end_pos[0]) <= 5 and abs(bullet.pos_y - bullet.end_pos[1]) <= 5:
                 bullet.kill()
@@ -836,6 +845,7 @@ def start_the_game():
         for rat in rats_group:
             follower = way_to_player((rat.pos_x, rat.pos_y), (player.pos_x, player.pos_y))
             rat.move(*follower)
+        # если игрок убил всех врагов, то он выиграл
         if not enemies_group and not rats_group:
             win()
         all_sprites.update()
