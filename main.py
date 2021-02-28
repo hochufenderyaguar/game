@@ -22,7 +22,8 @@ images = {
     'bullet_3': pygame.transform.scale(pygame.image.load('sprites\\bullet_3.png'), (32, 14)),
     'model': pygame.transform.scale(pygame.image.load('sprites\\model.png'), (30, 30)),
     'rat': pygame.transform.scale(pygame.image.load('sprites\\rat.png'), (30, 30)),
-    'patron': pygame.transform.scale(pygame.image.load('sprites\\patron.jpg'), (30, 30))
+    'patron': pygame.transform.scale(pygame.image.load('sprites\\patron.jpg'), (30, 30)),
+    'enemy': pygame.transform.scale(pygame.image.load('sprites\\enemy.png'), (30, 30))
 }
 
 tile_images = {
@@ -86,13 +87,18 @@ FPS = 30
 moving_right = moving_left = False
 full_health = pygame.image.load('sprites/full_health.png')
 zero_health = pygame.image.load('sprites/zero_health.png')
+# список уровней
 levels = listdir('levels')
+# счетчик уровней
 level_counter = -1
+# общий счет
 score = 0
 
+# загрузка звука выстрела
 shoot_sound = pygame.mixer.Sound('sounds/shoot.wav')
 shoot_sound.set_volume(0.5)
 
+# загрузка музыки
 pygame.mixer.music.load('sounds/Sewer.mp3')
 vol = 0.05
 pygame.mixer.music.set_volume(vol)
@@ -102,6 +108,7 @@ WIDTH, HEIGHT = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetric
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
 
+# константы для расчета позиции объекта, который следует за другим объектом
 CONST = 0.7
 CONST1 = 0.99
 
@@ -260,6 +267,7 @@ class Bullet(pygame.sprite.Sprite):
             rat.count += 1
         self.rect = self.image.get_rect().move(round(x), round(y))
 
+    # поворачивает пулю под углом к врагу
     def bullet_update(self):
         try:
             tg = ((self.end_pos[1] - self.pos_y) / (self.end_pos[0] - self.pos_x))
@@ -331,10 +339,10 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(enemies_group, all_sprites)
         self.pos_x, self.pos_y = x, y
-        self.image = images['model']
+        self.image = images['enemy']
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = pygame.Rect(0, 0, 28, 28).move(x, y)
-        self.image.set_colorkey(self.image.get_at((0, 0)))
+        self.image.set_colorkey((255, 0, 255))
         self.count = 0
         self.time = 1
         self.check_kill = False
@@ -543,6 +551,7 @@ def way_to_player(target_pos, enemy_pos):
     return new_enemy_vector.x, new_enemy_vector.y
 
 
+# задает шрифт
 font_name = pygame.font.match_font('arial')
 
 
@@ -596,12 +605,14 @@ my_theme = Theme(widget_font=font, title_bar_style=pygame_menu.widgets.MENUBAR_S
                  widget_font_color=(61, 170, 220))
 
 
+# продолжает игру
 def press_continue_button():
     global pause
     pause.disable()
     pygame.mouse.set_visible(False)
 
 
+# открывает меню паузы
 def put_on_pause():
     global pause
     pause = Menu(HEIGHT, WIDTH, 'Pause', theme=my_theme)
@@ -611,6 +622,7 @@ def put_on_pause():
     pygame.display.update()
 
 
+# открывает меню на случай проигрыша
 def game_over():
     global check_game_over
     check_game_over = True
@@ -622,6 +634,7 @@ def game_over():
     game_over_menu.mainloop(screen)
 
 
+# открывает меню на случай победы
 def win():
     win_menu = Menu(HEIGHT, WIDTH, theme=my_theme, title='')
     win_menu.add_label("You win!")
@@ -632,6 +645,7 @@ def win():
     win_menu.mainloop(screen)
 
 
+# открывает управление
 def open_instruction():
     instruction_menu = Menu(HEIGHT, WIDTH, theme=my_theme, title='Control')
     instruction_menu.add_label("wasd  movement")
@@ -646,6 +660,7 @@ def open_instruction():
     instruction_menu.mainloop(screen)
 
 
+# начинает игру
 def start_the_game():
     global bullet_counter, moving_left, moving_right, animCounter, vol, game_over_menu, tiles_group, walls_group, \
         player_group, group, enemies_group, hearts_group, enemy_guns, scope_group, all_sprites1, all_sprites, \
@@ -691,6 +706,7 @@ def start_the_game():
     running = True
     pygame.mouse.set_visible(False)
     while running:
+        # расчет координат курсора
         if MAP_WIDTH - WIDTH // 2 > player.pos_x > WIDTH // 2 \
                 and MAP_HEIGHT - HEIGHT // 2 > player.pos_y > HEIGHT // 2:
             scope.x, scope.y = player.pos_x - WIDTH // 2 + scope.pos_x, player.pos_y - HEIGHT // 2 + scope.pos_y
@@ -833,6 +849,7 @@ def start_the_game():
         clock.tick(FPS)
 
 
+# главное меню
 menu = Menu(HEIGHT, WIDTH, 'The scrap knight!', theme=my_theme)
 menu.add_button('Play', start_the_game)
 menu.add_button('control', open_instruction)
