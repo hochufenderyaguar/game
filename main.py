@@ -11,7 +11,7 @@ guns_images = {'sword': pygame.transform.scale(pygame.image.load('sprites\\guns\
                'gun1': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun1.png'), (20, 5)),
                'gun2': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun2.png'), (18, 5)),
                'gun3': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun3.png'), (14, 9)),
-               'gun4': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun4.png'), (22, 10)),
+               'gun4': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun4.png'), (50, 22)),
                'gun5': pygame.transform.scale(pygame.image.load('sprites\\guns\\gun5.png'), (15, 7)),
                'shovel': pygame.transform.scale(pygame.image.load('sprites\\guns\\shovel.png'), (29, 7)),
                'pickaxe': pygame.transform.scale(pygame.image.load('sprites\\guns\\pickaxe.png'), (25, 12))
@@ -21,7 +21,8 @@ images = {
     'scope': pygame.transform.scale(pygame.image.load('sprites\\scope1.png'), (30, 30)),
     'bullet': pygame.transform.scale(pygame.image.load('sprites\\bullet.png'), (30, 30)),
     'bullet_3': pygame.transform.scale(pygame.image.load('sprites\\bullet_3.png'), (32, 14)),
-    'model': pygame.transform.scale(pygame.image.load('sprites\\model.png'), (30, 30))
+    'model': pygame.transform.scale(pygame.image.load('sprites\\model.png'), (30, 30)),
+    'rat': pygame.transform.scale(pygame.image.load('sprites\\rat.jpg'), (30, 30))
 }
 
 tile_images = {
@@ -30,7 +31,16 @@ tile_images = {
     'upper_right_corner': pygame.image.load('sprites\\upper_right_corner.png'),
     'bottom_left_corner': pygame.image.load('sprites\\bottom_left_corner.png'),
     'bottom_right_corner': pygame.image.load('sprites\\bottom_right_corner.png'),
-    'walls': pygame.image.load('sprites\\wall_1.png')
+    'walls': pygame.image.load('sprites\\wall_1.png'),
+    'left_wall': pygame.image.load('sprites\\left_wall.png'),
+    'right_wall': pygame.image.load('sprites\\right_wall.png'),
+    'left_wall_corner': pygame.image.load('sprites\\left_wall_corner.png'),
+    'right_wall_corner': pygame.image.load('sprites\\right_wall_corner.png'),
+    'up_wall': pygame.image.load('sprites\\up_wall.png'),
+    'up_space': pygame.image.load('sprites\\up_space.png'),
+    'down_wall': pygame.image.load('sprites\\down_wall.png'),
+    'left_down_wall_corner': pygame.image.load('sprites\\left_down_wall_corner.png'),
+    'right_down_wall_corner': pygame.image.load('sprites\\right_down_wall_corner.png')
 }
 
 hero_animation = {
@@ -64,6 +74,7 @@ hero_animation = {
             pygame.transform.scale(pygame.image.load('sprites\\hero_animation\\move_5.png'), (32, 32)), True,
             False)]
 }
+
 pygame.init()
 pygame.display.set_caption('The scrap knight!')
 
@@ -135,15 +146,13 @@ class Hero(pygame.sprite.Sprite):
         self.rect = pygame.Rect(0, 0, 28, 28).move(self.pos_x, self.pos_y)
 
     def move(self, x, y):
-        # чтоб за границы не заходил, ток не работает(
-        if MAP_WIDTH > self.rect.x + x >= 0 and MAP_HEIGHT > self.rect.y + y >= 0:
-            self.rect.x += x
-            self.rect.y += y
-            if pygame.sprite.spritecollide(self, walls_group, False) or pygame.sprite.spritecollide(self, enemies_group,
-                                                                                                    False):
-                self.rect.x -= x
-                self.rect.y -= y
-            self.pos_x, self.pos_y = self.rect.x, self.rect.y
+        self.rect.x += x
+        self.rect.y += y
+        if pygame.sprite.spritecollide(self, walls_group, False) or pygame.sprite.spritecollide(self, enemies_group,
+                                                                                                False):
+            self.rect.x -= x
+            self.rect.y -= y
+        self.pos_x, self.pos_y = self.rect.x, self.rect.y
 
     def update(self):
         if moving_right:
@@ -178,14 +187,19 @@ class Gun(pygame.sprite.Sprite):
         self.pos_x, self.pos_y = x, y
         self.gun_num = 0
         self.gun_lst = ['gun1', 'gun2', 'gun3', 'gun4', 'gun5', 'shovel', 'pickaxe', 'sword']
+        self.patrons_lst = [0] * 8
         self.image = guns_images[self.gun_lst[self.gun_num]]
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = self.image.get_rect().move(x, y)
         self.image.set_colorkey(self.image.get_at((0, 0)))
 
     def move(self, x, y):
+        x1, y1 = self.pos_x, self.pos_y
         self.pos_x, self.pos_y = x, y
         self.rect.topleft = x + tile_width // 2, y + tile_height // 2 + 5
+        if pygame.sprite.spritecollide(self, walls_group, False):
+            self.pos_x, self.pos_y = x1, y1
+            self.rect.topleft = x + tile_width // 2, y + tile_height // 2 + 5
 
     def update(self):
         try:
@@ -198,9 +212,8 @@ class Gun(pygame.sprite.Sprite):
         rad = atan(tg)
         deg = degrees(rad)
         if self.pos_x > scope.x:
-            # if 0 > deg > -90:
-            #     self.rect.topleft = x + tile_width // 2 - ((90 + deg) * (15 // 90)), y + tile_height // 2 + 5
-            self.image = pygame.transform.flip(pygame.transform.rotate(guns_images[self.gun_lst[self.gun_num]], deg), True, False)
+            self.image = pygame.transform.flip(pygame.transform.rotate(guns_images[self.gun_lst[self.gun_num]], deg),
+                                               True, False)
         else:
             self.image = pygame.transform.rotate(guns_images[self.gun_lst[self.gun_num]], -deg)
         self.image.set_colorkey(self.image.get_at((0, 0)))
@@ -232,6 +245,10 @@ class Bullet(pygame.sprite.Sprite):
         if enemy:
             self.kill()
             enemy.count += 1
+        rat = pygame.sprite.spritecollideany(self, rats_group)
+        if rat:
+            self.kill()
+            rat.count += 1
         self.rect = self.image.get_rect().move(round(x), round(y))
 
     def bullet_update(self):
@@ -297,7 +314,6 @@ class Enemy(pygame.sprite.Sprite):
         self.pos_x, self.pos_y = x, y
         self.image = images['model']
         self.width, self.height = self.image.get_width(), self.image.get_height()
-        # self.rect = self.image.get_rect().move(x, y)
         self.rect = pygame.Rect(0, 0, 28, 28).move(x, y)
         self.image.set_colorkey(self.image.get_at((0, 0)))
         self.count = 0
@@ -312,12 +328,51 @@ class Enemy(pygame.sprite.Sprite):
             score += 100
 
     def move(self, x, y):
-        if not pygame.sprite.spritecollide(self, walls_group, False):
-            self.pos_x = round(x)
-            self.pos_y = round(y)
+        x1, y1 = self.pos_x, self.pos_y
+        self.pos_x = round(x)
+        self.pos_y = round(y)
+        self.rect.x = self.pos_x
+        self.rect.y = self.pos_y
+        self.rect = self.image.get_rect().move(self.pos_x, self.pos_y)
+        if pygame.sprite.spritecollide(self, walls_group, False):
+            self.pos_x = x1
+            self.pos_y = y1
             self.rect.x = self.pos_x
             self.rect.y = self.pos_y
-            self.rect = self.image.get_rect().move(round(x), round(y))
+            self.rect = self.image.get_rect().move(self.pos_x, self.pos_y)
+
+
+class Rat(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(rats_group, all_sprites)
+        self.pos_x, self.pos_y = x, y
+        self.image = images['rat']
+        self.width, self.height = self.image.get_width(), self.image.get_height()
+        self.rect = self.image.get_rect().move(x, y)
+        self.image.set_colorkey((0, 0, 0))
+        self.count = 0
+        self.check_kill = False
+
+    def update(self):
+        global score
+        if self.count > 10:
+            self.check_kill = True
+            self.kill()
+            score += 100
+
+    def move(self, x, y):
+        x1, y1 = self.pos_x, self.pos_y
+        self.pos_x = round(x)
+        self.pos_y = round(y)
+        self.rect.x = self.pos_x
+        self.rect.y = self.pos_y
+        self.rect = self.image.get_rect().move(self.pos_x, self.pos_y)
+        if pygame.sprite.spritecollide(self, walls_group, False):
+            self.pos_x = x1
+            self.pos_y = y1
+            self.rect.x = self.pos_x
+            self.rect.y = self.pos_y
+            self.rect = self.image.get_rect().move(self.pos_x, self.pos_y)
 
 
 class EnemyGun(pygame.sprite.Sprite):
@@ -327,15 +382,18 @@ class EnemyGun(pygame.sprite.Sprite):
         super().__init__(enemy_guns, all_sprites)
         self.pos_x, self.pos_y = x, y
         self.image = guns_images['gun4']
+        self.image.set_colorkey((255, 0, 255))
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = self.image.get_rect().move(self.pos_x, self.pos_y)
-        self.image.set_colorkey(self.image.get_at((0, 0)))
         self.time = 0
 
     def update(self):
         if enemy_dict[self].check_kill:
             self.kill()
+        x1, y1 = self.pos_x, self.pos_y
         self.pos_x, self.pos_y = enemy_dict[self].pos_x, enemy_dict[self].pos_y
+        if pygame.sprite.spritecollide(self, walls_group, False):
+            self.pos_x, self.pos_y = x1, y1
         self.rect.topleft = self.pos_x + tile_width // 2, self.pos_y + tile_height // 2 + 5
         self.time += 1
         self.time = self.time % 70
@@ -352,6 +410,7 @@ class EnemyGun(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(pygame.transform.rotate(guns_images['gun4'], deg), True, False)
         else:
             self.image = pygame.transform.rotate(guns_images['gun4'], -deg)
+        self.image.set_colorkey((255, 0, 255))
         if self.time == 0:
             self.shoot()
 
@@ -374,6 +433,7 @@ def generate_level(level):
     new_player, x, y = None, None, None
     player_x, player_y = None, None
     enemy_lst = []
+    rats_lst = []
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '#':
@@ -394,10 +454,33 @@ def generate_level(level):
             elif level[y][x] == 'e':
                 Tile('tile', x, y, tiles_group)
                 enemy_lst.append((x * tile_width, y * tile_height))
+            elif level[y][x] == '>':
+                Tile('left_wall', x, y, walls_group)
+            elif level[y][x] == '<':
+                Tile('right_wall', x, y, walls_group)
+            elif level[y][x] == '8':
+                Tile('right_wall_corner', x, y, walls_group)
+            elif level[y][x] == '7':
+                Tile('left_wall_corner', x, y, walls_group)
+            elif level[y][x] == '0':
+                Tile('up_space', x, y, walls_group)
+            elif level[y][x] == '-':
+                Tile('up_wall', x, y, walls_group)
+            elif level[y][x] == '_':
+                Tile('down_wall', x, y, walls_group)
+            elif level[y][x] == '5':
+                Tile('left_down_wall_corner', x, y, walls_group)
+            elif level[y][x] == '6':
+                Tile('right_down_wall_corner', x, y, walls_group)
+            elif level[y][x] == 'r':
+                Tile('tile', x, y, tiles_group)
+                rats_lst.append((x * tile_width, y * tile_height))
     for x, y in enemy_lst:
         enemy = Enemy(x, y)
         gun = EnemyGun(x, y)
         enemy_dict[gun] = enemy
+    for x, y in rats_lst:
+        Rat(x, y)
     new_player = Hero(player_x, player_y)
     return new_player, x, y
 
@@ -535,7 +618,7 @@ def open_instruction():
 def start_the_game():
     global bullet_counter, moving_left, moving_right, animCounter, vol, game_over_menu, tiles_group, walls_group, \
         player_group, group, enemies_group, hearts_group, enemy_guns, scope_group, all_sprites1, all_sprites, \
-        enemy_bullets_group, bullets_group, scope, player, MAP_WIDTH, MAP_HEIGHT, level_counter, score
+        enemy_bullets_group, bullets_group, scope, player, MAP_WIDTH, MAP_HEIGHT, level_counter, score, rats_group
 
     if check_game_over:
         score, level_counter = 0, -1
@@ -553,6 +636,7 @@ def start_the_game():
     all_sprites1 = pygame.sprite.Group()
     scope_group = pygame.sprite.Group()
     enemy_guns = pygame.sprite.Group()
+    rats_group = pygame.sprite.Group()
 
     level = load_level('levels/' + levels[level_counter % len(levels)])
 
@@ -698,7 +782,10 @@ def start_the_game():
             else:
                 follower = way_to_player((enemy.pos_x, enemy.pos_y), (player.pos_x, player.pos_y))
                 enemy.move(*follower)
-        if not enemies_group:
+        for rat in rats_group:
+            follower = way_to_player((rat.pos_x, rat.pos_y), (player.pos_x, player.pos_y))
+            rat.move(*follower)
+        if not enemies_group and not rats_group:
             win()
         all_sprites.update()
         all_sprites1.update()
