@@ -203,6 +203,7 @@ class Gun(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(pygame.transform.rotate(guns_images[self.gun_lst[self.gun_num]], deg), True, False)
         else:
             self.image = pygame.transform.rotate(guns_images[self.gun_lst[self.gun_num]], -deg)
+        self.image.set_colorkey(self.image.get_at((0, 0)))
 
     def change(self):
         self.gun_num += 1
