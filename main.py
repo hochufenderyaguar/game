@@ -1,4 +1,3 @@
-import random
 import pygame
 import pygame_menu
 from ctypes import *
@@ -22,7 +21,8 @@ images = {
     'bullet': pygame.transform.scale(pygame.image.load('sprites\\bullet.png'), (30, 30)),
     'bullet_3': pygame.transform.scale(pygame.image.load('sprites\\bullet_3.png'), (32, 14)),
     'model': pygame.transform.scale(pygame.image.load('sprites\\model.png'), (30, 30)),
-    'rat': pygame.transform.scale(pygame.image.load('sprites\\rat.jpg'), (30, 30))
+    'rat': pygame.transform.scale(pygame.image.load('sprites\\rat.png'), (30, 30)),
+    'patron': pygame.transform.scale(pygame.image.load('sprites\\patron.jpg'), (30, 30))
 }
 
 tile_images = {
@@ -79,6 +79,7 @@ pygame.init()
 pygame.display.set_caption('The scrap knight!')
 
 tile_width = tile_height = 30
+# перменная для подсчета кадра, который будет играться для анимации героя
 animCounter = 0
 clock = pygame.time.Clock()
 FPS = 30
@@ -90,13 +91,13 @@ level_counter = -1
 score = 0
 
 shoot_sound = pygame.mixer.Sound('sounds/shoot.wav')
-cooldown_sound = pygame.mixer.Sound('sounds/cooldown.wav')
 shoot_sound.set_volume(0.5)
 
 pygame.mixer.music.load('sounds/Sewer.mp3')
 vol = 0.05
 pygame.mixer.music.set_volume(vol)
 
+# ширина и высота экрана компа, с которого запускают игру
 WIDTH, HEIGHT = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_2 = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -131,8 +132,6 @@ class Tile(pygame.sprite.Sprite):
         self.image = tile_images[tile_type]
         self.rect = pygame.Rect(0, 0, 28, 28).move(
             tile_width * pos_x, tile_height * pos_y)
-        # self.rect = self.image.get_rect().move(
-        #     tile_width * pos_x, tile_height * pos_y)
 
 
 class Hero(pygame.sprite.Sprite):
@@ -142,7 +141,6 @@ class Hero(pygame.sprite.Sprite):
         self.pos_x, self.pos_y = x * tile_width, y * tile_height
         self.image = hero_animation['stand'][0]
         self.image.set_colorkey((255, 0, 255))
-        # self.rect = self.image.get_rect()
         self.rect = pygame.Rect(0, 0, 28, 28).move(self.pos_x, self.pos_y)
 
     def move(self, x, y):
@@ -155,6 +153,12 @@ class Hero(pygame.sprite.Sprite):
         self.pos_x, self.pos_y = self.rect.x, self.rect.y
 
     def update(self):
+        global gun
+        patron = pygame.sprite.spritecollideany(self, patrons_group)
+        if patron:
+            patron.kill()
+            gun.bullet_counter += 10
+            gun.patrons_lst[gun.gun_num] += 10
         if self.hp < 0:
             game_over()
         if moving_right:
@@ -272,6 +276,16 @@ class Bullet(pygame.sprite.Sprite):
             self.image = pygame.transform.rotate(images['bullet'], -deg)
 
 
+class Patron(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(patrons_group, all_sprites)
+        self.pos_x, self.pos_y = x, y
+        self.image = images['patron']
+        self.width, self.height = self.image.get_width(), self.image.get_height()
+        self.rect = self.image.get_rect().move(x, y)
+        self.image.set_colorkey((0, 0, 0))
+
+
 class EnemyBullet(pygame.sprite.Sprite):
     def __init__(self, x, y, end_pos):
         super().__init__(enemy_bullets_group, all_sprites)
@@ -354,7 +368,7 @@ class Rat(pygame.sprite.Sprite):
         self.image = images['rat']
         self.width, self.height = self.image.get_width(), self.image.get_height()
         self.rect = self.image.get_rect().move(x, y)
-        self.image.set_colorkey((0, 0, 0))
+        self.image.set_colorkey((255, 0, 255))
         self.count = 0
         self.check_kill = False
 
@@ -444,6 +458,7 @@ def generate_level(level):
     player_x, player_y = None, None
     enemy_lst = []
     rats_lst = []
+    patrons_lst = []
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '#':
@@ -485,12 +500,17 @@ def generate_level(level):
             elif level[y][x] == 'r':
                 Tile('tile', x, y, tiles_group)
                 rats_lst.append((x * tile_width, y * tile_height))
+            elif level[y][x] == 'p':
+                Tile('tile', x, y, tiles_group)
+                patrons_lst.append((x * tile_width, y * tile_height))
     for x, y in enemy_lst:
         enemy = Enemy(x, y)
         gun = EnemyGun(x, y)
         enemy_dict[gun] = enemy
     for x, y in rats_lst:
         Rat(x, y)
+    for x, y in patrons_lst:
+        Patron(x, y)
     new_player = Hero(player_x, player_y)
     return new_player, x, y
 
@@ -526,6 +546,7 @@ def way_to_player(target_pos, enemy_pos):
 font_name = pygame.font.match_font('arial')
 
 
+# выводит на экран колво патронов
 def draw_text(screen, text, size, x, y):
     font = pygame.font.Font(font_name, size)
     text_surface = font.render(text, True, (255, 255, 255))
@@ -628,7 +649,8 @@ def open_instruction():
 def start_the_game():
     global bullet_counter, moving_left, moving_right, animCounter, vol, game_over_menu, tiles_group, walls_group, \
         player_group, group, enemies_group, hearts_group, enemy_guns, scope_group, all_sprites1, all_sprites, \
-        enemy_bullets_group, bullets_group, scope, player, MAP_WIDTH, MAP_HEIGHT, level_counter, score, rats_group
+        enemy_bullets_group, bullets_group, scope, player, MAP_WIDTH, MAP_HEIGHT, level_counter, score, rats_group, \
+        patrons_group, gun
 
     if check_game_over:
         score, level_counter = 0, -1
@@ -647,6 +669,7 @@ def start_the_game():
     scope_group = pygame.sprite.Group()
     enemy_guns = pygame.sprite.Group()
     rats_group = pygame.sprite.Group()
+    patrons_group = pygame.sprite.Group()
 
     level = load_level('levels/' + levels[level_counter % len(levels)])
 
