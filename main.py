@@ -631,7 +631,8 @@ def put_on_pause():
 
 # открывает меню на случай проигрыша
 def game_over():
-    global check_game_over
+    global check_game_over, patrons
+    patrons = [100 for _ in range(8)]
     check_game_over = True
     game_over_menu = Menu(HEIGHT, WIDTH, theme=my_theme, title='')
     game_over_menu.add_label("Game over")
